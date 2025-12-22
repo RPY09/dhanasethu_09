@@ -4,7 +4,6 @@ const cors = require("cors");
 const app = express();
 
 const allowedOrigins = [
-  'https://dhanasethu09.vercel.app',
   'https://dhanasethu09-rj55rpxko-pranav-4337s-projects.vercel.app',
   'http://localhost:3000' // if you use local dev
 ];
