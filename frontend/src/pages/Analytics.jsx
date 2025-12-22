@@ -43,6 +43,11 @@ const getWeeksInMonth = (year, month) => {
   return weeks;
 };
 
+const isInvestment = (t) => {
+  const type = (t.type || "").toLowerCase();
+  return type === "investment" || type === "invest";
+};
+
 const Analytics = () => {
   const [transactions, setTransactions] = useState([]);
   const [range, setRange] = useState("month"); // "week" | "month" | "year"
@@ -119,7 +124,7 @@ const Analytics = () => {
   const totalInvestment = useMemo(
     () =>
       filteredTransactions
-        .filter((t) => t.type === "investment")
+        .filter((t) => isInvestment(t))
         .reduce((s, t) => s + Number(t.amount || 0), 0),
     [filteredTransactions]
   );
@@ -178,7 +183,7 @@ const Analytics = () => {
         .filter((t) => t.type === "expense")
         .reduce((s, t) => s + Number(t.amount || 0), 0);
       const investment = monthTx
-        .filter((t) => t.type === "investment")
+        .filter((t) => isInvestment(t))
         .reduce((s, t) => s + Number(t.amount || 0), 0);
       return {
         monthIndex: i,
@@ -207,7 +212,7 @@ const Analytics = () => {
         .filter((t) => t.type === "expense")
         .reduce((s, t) => s + Number(t.amount || 0), 0);
       const investment = weekTx
-        .filter((t) => t.type === "investment")
+        .filter((t) => isInvestment(t))
         .reduce((s, t) => s + Number(t.amount || 0), 0);
       const startLabel = w.start.getDate();
       const endLabel = w.end.getDate();
