@@ -1,0 +1,145 @@
+:root {
+  --bg-deep: #10232a;
+  --bg-slate: #3d4d55;
+  --accent-tan: #b58863;
+  --surface-beige: #d3c3b9;
+  --text-dark: #1b1b1b;
+  --text-muted: #a79e9c;
+}
+
+.analytics-container {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  background-color: #f8f6f4;
+  min-height: 100vh;
+}
+
+.analytics-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.analytics-header h1 {
+  color: var(--bg-deep);
+  font-size: 2rem;
+  margin: 0;
+}
+
+.subtitle {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* Filter Controls */
+.filter-bar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+select {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--surface-beige);
+  background: white;
+  font-family: inherit;
+  color: var(--bg-deep);
+  cursor: pointer;
+}
+
+.range-toggle {
+  background: #eee;
+  padding: 4px;
+  border-radius: 10px;
+  display: flex;
+}
+
+.range-toggle button {
+  padding: 6px 16px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  text-transform: capitalize;
+  transition: all 0.3s ease;
+  background: transparent;
+}
+
+.range-toggle button.active {
+  background: white;
+  color: var(--bg-deep);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  font-weight: 600;
+}
+
+/* Stats Grid */
+.analytics-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 16px;
+  border: 1px solid rgba(211, 195, 185, 0.5);
+}
+
+.stat-card span {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.stat-card h3 {
+  margin: 8px 0 0 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.primary-card {
+  background: var(--bg-deep);
+  color: white;
+}
+
+/* Chart Cards */
+.chart-card {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 20px;
+  border: 1px solid rgba(211, 195, 185, 0.5);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+}
+
+.chart-card h3 {
+  font-size: 1.1rem;
+  color: var(--bg-slate);
+  margin-bottom: 1.5rem;
+}
+
+.pie-section {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .filter-bar {
+    flex-direction: column;
+  }
+  .pie-section {
+    grid-template-columns: 1fr;
+  }
+  .analytics-header {
+    flex-direction: column;
+  }
+}
