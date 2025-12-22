@@ -5,8 +5,8 @@ const app = express();
 
 app.use(
   cors({
-    origin: "https://dhanasethu09.vercel.app",
-    credentials: true,
+  origin: process.env.CORS_ORIGIN || "https://dhanasethu09.vercel.app",    credentials: true,
+    
   })
 );
 
