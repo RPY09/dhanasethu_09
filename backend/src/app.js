@@ -1,11 +1,11 @@
 const express = require("express");
 const cors = require("cors");
-
 const app = express();
 
 const allowedOrigins = [
   'https://dhanasethu09-rj55rpxko-pranav-4337s-projects.vercel.app',
-  'http://localhost:3000' // if you use local dev
+  'https://dhanasethu09.vercel.app',
+  'http://localhost:3000'
 ];
 
 const corsOptions = {
@@ -22,7 +22,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // ensure preflight is handled
+app.options('*', cors(corsOptions));
 app.use(express.json());
 
 app.use("/api/auth", require("./routes/auth.routes"));
