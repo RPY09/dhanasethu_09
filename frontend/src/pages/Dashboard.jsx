@@ -74,7 +74,7 @@ const Dashboard = () => {
   const totalInvestment = useMemo(
     () =>
       monthTransactions
-        .filter((t) => t.type === "investment")
+        .filter((t) => t.type === "invest")
         .reduce((s, t) => s + parseNumber(t.amount), 0),
     [monthTransactions]
   );
@@ -95,7 +95,7 @@ const Dashboard = () => {
       const signed =
         t.type === "income"
           ? amt
-          : t.type === "expense" || t.type === "investment"
+          : t.type === "expense" || t.type === "invest"
             ? -amt
             : 0;
 
