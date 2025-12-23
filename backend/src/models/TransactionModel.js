@@ -13,7 +13,12 @@ const transactionSchema = new mongoose.Schema(
     },
     type: {
       type: String,
+<<<<<<< HEAD
 enum: ["income", "expense", "investment", "invest"],      required: true,
+=======
+      enum: ["income", "expense", "invest"],
+      required: true,
+>>>>>>> e59c53f77c3081fe6746be29489c71b7e23f2b18
     },
     category: {
       type: String,
@@ -21,7 +26,12 @@ enum: ["income", "expense", "investment", "invest"],      required: true,
     },
     paymentMode: {
       type: String,
+<<<<<<< HEAD
 enum: ["cash", "online", "Cash", "Online"],      required: true,
+=======
+      enum: ["cash", "online"],
+      required: true,
+>>>>>>> e59c53f77c3081fe6746be29489c71b7e23f2b18
     },
     date: {
       type: Date,

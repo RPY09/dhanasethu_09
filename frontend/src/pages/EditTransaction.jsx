@@ -64,7 +64,10 @@ const EditTransaction = () => {
               <select name="type" value={form.type} onChange={handleChange}>
                 <option value="expense">Expense</option>
                 <option value="income">Income</option>
+<<<<<<< HEAD
                 <option value="invest">Invest</option>
+=======
+>>>>>>> e59c53f77c3081fe6746be29489c71b7e23f2b18
               </select>
             </div>
 
