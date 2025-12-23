@@ -43,14 +43,11 @@ const getWeeksInMonth = (year, month) => {
   return weeks;
 };
 
-<<<<<<< HEAD
 const isInvestment = (t) => {
   const type = (t.type || "").toLowerCase();
   return type === "investment" || type === "invest";
 };
 
-=======
->>>>>>> e59c53f77c3081fe6746be29489c71b7e23f2b18
 const Analytics = () => {
   const [transactions, setTransactions] = useState([]);
   const [range, setRange] = useState("month"); // "week" | "month" | "year"
@@ -127,11 +124,7 @@ const Analytics = () => {
   const totalInvestment = useMemo(
     () =>
       filteredTransactions
-<<<<<<< HEAD
         .filter((t) => isInvestment(t))
-=======
-        .filter((t) => t.type === "invest")
->>>>>>> e59c53f77c3081fe6746be29489c71b7e23f2b18
         .reduce((s, t) => s + Number(t.amount || 0), 0),
     [filteredTransactions]
   );
@@ -190,24 +183,15 @@ const Analytics = () => {
         .filter((t) => t.type === "expense")
         .reduce((s, t) => s + Number(t.amount || 0), 0);
       const investment = monthTx
-<<<<<<< HEAD
         .filter((t) => isInvestment(t))
-=======
-        .filter((t) => t.type === "invest")
->>>>>>> e59c53f77c3081fe6746be29489c71b7e23f2b18
         .reduce((s, t) => s + Number(t.amount || 0), 0);
       return {
         monthIndex: i,
         monthName: new Date(0, i).toLocaleString("default", { month: "short" }),
         income,
         expense,
-<<<<<<< HEAD
         investment,
         balance: income - expense - investment,
-=======
-        invest,
-        balance: income - expense - invest,
->>>>>>> e59c53f77c3081fe6746be29489c71b7e23f2b18
       };
     });
   }, [transactions, selectedYear]);
@@ -228,11 +212,7 @@ const Analytics = () => {
         .filter((t) => t.type === "expense")
         .reduce((s, t) => s + Number(t.amount || 0), 0);
       const investment = weekTx
-<<<<<<< HEAD
         .filter((t) => isInvestment(t))
-=======
-        .filter((t) => t.type === "invest")
->>>>>>> e59c53f77c3081fe6746be29489c71b7e23f2b18
         .reduce((s, t) => s + Number(t.amount || 0), 0);
       const startLabel = w.start.getDate();
       const endLabel = w.end.getDate();
@@ -244,13 +224,8 @@ const Analytics = () => {
         end: w.end,
         income,
         expense,
-<<<<<<< HEAD
         investment,
         balance: income - expense - investment,
-=======
-        invest,
-        balance: income - expense - invest,
->>>>>>> e59c53f77c3081fe6746be29489c71b7e23f2b18
       };
     });
   }, [filteredTransactions, range, selectedMonth, selectedYear]);
@@ -261,6 +236,7 @@ const Analytics = () => {
       name: m.monthName,
       Income: m.income,
       Expense: m.expense,
+      Investment: m.investment,
     }));
   }, [monthlySummaries, range]);
 
@@ -270,6 +246,7 @@ const Analytics = () => {
       name: w.label,
       Income: w.income,
       Expense: w.expense,
+      Investment: w.investment,
     }));
   }, [weeklySummaries, range]);
 
@@ -290,11 +267,7 @@ const Analytics = () => {
 
   // Helper to check if monthlySummaries has any meaningful data for the selected year
   const hasMonthlyData = useMemo(
-<<<<<<< HEAD
     () => monthlySummaries.some((m) => m.income || m.expense || m.investment),
-=======
-    () => monthlySummaries.some((m) => m.income || m.expense || m.invest),
->>>>>>> e59c53f77c3081fe6746be29489c71b7e23f2b18
     [monthlySummaries]
   );
 
