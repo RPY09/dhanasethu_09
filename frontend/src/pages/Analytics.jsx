@@ -119,7 +119,7 @@ const Analytics = () => {
   const totalInvestment = useMemo(
     () =>
       filteredTransactions
-        .filter((t) => t.type === "investment")
+        .filter((t) => t.type === "invest")
         .reduce((s, t) => s + Number(t.amount || 0), 0),
     [filteredTransactions]
   );
@@ -178,15 +178,15 @@ const Analytics = () => {
         .filter((t) => t.type === "expense")
         .reduce((s, t) => s + Number(t.amount || 0), 0);
       const investment = monthTx
-        .filter((t) => t.type === "investment")
+        .filter((t) => t.type === "invest")
         .reduce((s, t) => s + Number(t.amount || 0), 0);
       return {
         monthIndex: i,
         monthName: new Date(0, i).toLocaleString("default", { month: "short" }),
         income,
         expense,
-        investment,
-        balance: income - expense - investment,
+        invest,
+        balance: income - expense - invest,
       };
     });
   }, [transactions, selectedYear]);
@@ -207,7 +207,7 @@ const Analytics = () => {
         .filter((t) => t.type === "expense")
         .reduce((s, t) => s + Number(t.amount || 0), 0);
       const investment = weekTx
-        .filter((t) => t.type === "investment")
+        .filter((t) => t.type === "invest")
         .reduce((s, t) => s + Number(t.amount || 0), 0);
       const startLabel = w.start.getDate();
       const endLabel = w.end.getDate();
@@ -219,8 +219,8 @@ const Analytics = () => {
         end: w.end,
         income,
         expense,
-        investment,
-        balance: income - expense - investment,
+        invest,
+        balance: income - expense - invest,
       };
     });
   }, [filteredTransactions, range, selectedMonth, selectedYear]);
@@ -260,7 +260,7 @@ const Analytics = () => {
 
   // Helper to check if monthlySummaries has any meaningful data for the selected year
   const hasMonthlyData = useMemo(
-    () => monthlySummaries.some((m) => m.income || m.expense || m.investment),
+    () => monthlySummaries.some((m) => m.income || m.expense || m.invest),
     [monthlySummaries]
   );
 
