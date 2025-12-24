@@ -23,7 +23,7 @@ const Register = () => {
       const res = await registerUser(form);
       localStorage.setItem("token", res.data.token);
       alert("Registration successful");
-      navigate("/login");
+      navigate("/dashboard");
     } catch (err) {
       alert(err.response?.data?.message || "Registration failed");
     }
