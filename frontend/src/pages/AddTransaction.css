@@ -10,7 +10,7 @@
 
 .form-container {
   background-color: var(--bg-soft);
-  height: 70vh;
+  height: 90vh;
   /* max-height: 780px Forces height limit */
   width: 100vw;
   display: flex;
