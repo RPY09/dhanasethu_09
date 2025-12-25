@@ -1,124 +1,146 @@
 :root {
-  --bg-deep: #10232a;
-  --accent-tan: #b58863;
-  --surface-beige: #d3c3b9;
-  --text-dark: #1b1b1b;
+  --primary: #10232a; /* Deep Teal */
+  --accent: #b58863; /* Tan */
+  --bg-soft: #f4f1ee; /* Beige Background */
+  --card-bg: #ffffff;
+  --text-main: #10232a;
   --text-muted: #a79e9c;
+  --radius-lg: 24px;
+  --radius-md: 16px;
 }
 
+/* Page Lock - No Horizontal Scroll */
 .auth-page {
+  background-color: var(--bg-soft);
+  min-height: 100vh;
+  width: 100vw;
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 90vh;
-  padding: 1.5rem;
-  background-color: #f8f6f4;
-  font-family: "Inter", sans-serif;
+  padding: 20px 16px;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .auth-card {
-  background: white;
+  background: var(--card-bg);
   width: 100%;
-  max-width: 420px;
-  padding: 2.5rem;
-  border-radius: 24px;
-  box-shadow: 0 10px 40px rgba(16, 35, 42, 0.08);
-  border: 1px solid var(--surface-beige);
+  max-width: 400px;
+  padding: 32px 24px;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 30px rgba(16, 35, 42, 0.05);
+  box-sizing: border-box;
 }
 
 .auth-header {
-  text-align: center;
-  margin-bottom: 2rem;
+  text-align: left; /* Consistent with AddTransaction */
+  margin-bottom: 28px;
 }
 
 .auth-header h2 {
-  color: var(--bg-deep);
-  font-size: 1.75rem;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--primary);
+  letter-spacing: -1px;
+  margin-bottom: 4px;
 }
 
 .auth-header p {
-  color: var(--text-muted);
-  font-size: 0.9rem;
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 16px;
 }
 
+/* Modern Input Fields */
 .input-field {
   position: relative;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .input-field i {
   position: absolute;
-  left: 1rem;
-  color: var(--accent-tan);
+  left: 14px;
+  top: 14px;
+  color: var(--accent);
   font-size: 1.1rem;
+  z-index: 1;
 }
 
 .input-field input {
   width: 100%;
-  padding: 0.8rem 1rem 0.8rem 2.8rem;
-  border: 1.5px solid #eee;
-  border-radius: 12px;
-  font-size: 0.95rem;
-  background-color: #fafafa;
+  background: #fafafa;
+  border: 1.5px solid #ececec;
+  padding: 12px 14px 12px 42px; /* Extra left padding for icons */
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  color: var(--text-main);
   transition: all 0.2s ease;
-  font-family: "Inter", sans-serif;
+  box-sizing: border-box;
 }
 
 .input-field input:focus {
   outline: none;
-  border-color: var(--accent-tan);
-  background-color: white;
-  box-shadow: 0 0 0 4px rgba(181, 136, 99, 0.1);
+  border-color: var(--accent);
+  background: white;
+  box-shadow: 0 4px 12px rgba(181, 136, 99, 0.08);
 }
 
+/* Classy Buttons */
 .auth-submit {
-  background-color: var(--bg-deep);
+  background-color: var(--primary);
   color: white;
-  padding: 1rem;
+  padding: 16px;
   border: none;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 1rem;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 15px;
   cursor: pointer;
-  margin-top: 0.5rem;
-  transition: background 0.3s;
+  margin-top: 8px;
+  box-shadow: 0 8px 16px rgba(16, 35, 42, 0.15);
 }
 
 .auth-submit:disabled {
   opacity: 0.7;
-  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .auth-footer {
-  margin-top: 1.5rem;
+  margin-top: 20px;
   text-align: center;
-  font-size: 0.9rem;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--text-muted);
 }
 
 .auth-footer a {
-  color: var(--accent-tan);
+  color: var(--accent);
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 700;
+  margin-left: 4px;
 }
 
-.auth-footer a:hover {
-  text-decoration: underline;
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top: 3px solid white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
 }
 
-/* Responsive adjustments */
-@media (max-width: 480px) {
-  .auth-card {
-    padding: 1.5rem;
-    border-radius: 16px;
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }

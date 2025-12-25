@@ -40,7 +40,7 @@ const Login = () => {
       <div className="auth-card">
         <header className="auth-header">
           <h2>Welcome Back</h2>
-          <p>Please enter your details to sign in</p>
+          <p>Secure Access to your wealth</p>
         </header>
 
         <form className="auth-form" onSubmit={handleSubmit}>
@@ -78,9 +78,7 @@ const Login = () => {
         </form>
 
         <footer className="auth-footer">
-          <p>
-            Don't have an account? <Link to="/register">Create one</Link>
-          </p>
+          Don't have an account? <Link to="/register">Create one</Link>
         </footer>
       </div>
     </motion.div>

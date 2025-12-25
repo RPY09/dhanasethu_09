@@ -32,14 +32,14 @@ const Register = () => {
   return (
     <motion.div
       className="auth-page"
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
       <div className="auth-card">
         <header className="auth-header">
-          <h2>Create Account</h2>
-          <p>Join DhanaSethu and manage your wealth</p>
+          <h2>Get Started</h2>
+          <p>Join DhanaSethu and Manage Wealth</p>
         </header>
 
         <form className="auth-form" onSubmit={handleSubmit}>
@@ -93,9 +93,7 @@ const Register = () => {
         </form>
 
         <footer className="auth-footer">
-          <p>
-            Already have an account? <Link to="/login">Sign In</Link>
-          </p>
+          Already have an account? <Link to="/login">Sign In</Link>
         </footer>
       </div>
     </motion.div>
