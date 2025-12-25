@@ -2,7 +2,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useState } from "react";
 import { motion } from "framer-motion"; // Consistency with other pages
 import { updateTransaction } from "../api/transaction.api";
-import "./EditTransaction.css";
+import "./AddTransaction.css";
 
 const EditTransaction = () => {
   const { state } = useLocation();
@@ -47,15 +47,18 @@ const EditTransaction = () => {
 
         <form onSubmit={handleSubmit} className="modern-form">
           <div className="input-group">
-            <label>Amount</label>
-            <input
-              type="number"
-              name="amount"
-              value={form.amount}
-              onChange={handleChange}
-              required
-              className="main-input"
-            />
+            <label>Amount (INR)</label>
+            <div className="main-input-wrap">
+              <input
+                type="number"
+                name="amount"
+                placeholder="0"
+                value={form.amount} // for Edit page
+                required
+                onChange={handleChange}
+                className="main-input"
+              />
+            </div>
           </div>
 
           <div className="row">

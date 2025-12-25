@@ -1,121 +1,142 @@
 :root {
-  --bg-deep: #10232a;
-  --bg-slate: #3d4d55;
-  --accent-tan: #b58863;
-  --surface-beige: #d3c3b9;
-  --text-dark: #1b1b1b;
-  --border-muted: #a79e9c;
+  --primary: #10232a;
+  --accent: #b58863;
+  --bg-soft: #f4f1ee;
+  --card-bg: #ffffff;
+  --text-main: #10232a;
+  --text-muted: #a79e9c;
+  --radius-lg: 24px;
+  --radius-md: 12px; /* Slightly tighter radius */
 }
 
 .form-container {
+  background-color: var(--bg-soft);
+  height: 780px; /* Locked Height */
+  max-height: 780px;
+  width: 100%;
+  padding: 20px 16px;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  min-height: 90vh;
-  padding: 2rem;
-  background-color: #f8f6f4;
+  justify-content: flex-start; /* Centers the card vertically */
+  overflow: hidden; /* Prevents container scroll */
 }
 
 .form-card {
-  background: white;
+  background: var(--card-bg);
   width: 100%;
-  max-width: 500px;
-  padding: 2.5rem;
-  border-radius: 24px;
-  box-shadow: 0 10px 40px rgba(16, 35, 42, 0.08);
-  border: 1px solid var(--surface-beige);
+  max-width: 420px;
+  padding: 20px; /* Reduced padding */
+  border-radius: var(--radius-lg);
+  box-shadow: 0 10px 30px rgba(16, 35, 42, 0.05);
+  box-sizing: border-box;
 }
 
 .form-header {
-  margin-bottom: 2rem;
-  text-align: center;
+  text-align: left;
+  margin-bottom: 15px; /* Tightened header margin */
 }
 
 .form-header h2 {
-  color: var(--bg-deep);
-  font-size: 1.75rem;
-  margin-bottom: 0.5rem;
+  font-size: 20px; /* Smaller font for height saving */
+  font-weight: 800;
+  color: var(--primary);
+  margin-bottom: 2px;
 }
 
 .form-header p {
-  color: var(--border-muted);
-  font-size: 0.9rem;
+  font-size: 11px;
+  color: var(--accent);
+  font-weight: 600;
+  text-transform: uppercase;
 }
 
 .modern-form {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 12px; /* Reduced gap between elements */
 }
 
 .input-group {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 4px; /* Minimal internal gap */
 }
 
 .input-group label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--bg-slate);
-  margin-left: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-left: 2px;
 }
 
-.row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+/* Compact Big Amount Input */
+.main-input-wrap {
+  background: var(--bg-soft);
+  padding: 12px; /* Reduced padding */
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.main-input {
+  background: transparent !important;
+  border: none !important;
+  font-size: 26px !important; /* Smaller size to save vertical space */
+  font-weight: 800 !important;
+  color: var(--primary) !important;
+  width: 100%;
+  padding: 0 !important;
+  text-align: center;
 }
 
 input,
 select,
 textarea {
-  padding: 0.8rem 1rem;
-  border: 1.5px solid #eee;
-  border-radius: 12px;
-  font-size: 1rem;
-  transition: all 0.2s ease;
-  background-color: #fafafa;
+  background: #fafafa;
+  border: 1.5px solid #ececec;
+  padding: 10px 14px; /* Tighter padding */
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text-main);
 }
 
-input:focus,
-select:focus,
-textarea:focus {
-  outline: none;
-  border-color: var(--accent-tan);
-  background-color: white;
-  box-shadow: 0 0 0 4px rgba(181, 136, 99, 0.1);
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
 }
 
-.main-input {
-  font-size: 1.5rem;
-  font-weight: 700;
-  text-align: center;
-  color: var(--bg-deep);
+textarea {
+  height: 50px; /* Significantly shorter height */
+  resize: none;
+}
+
+/* Tighter Button Styles */
+.actionbtns {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 5px;
 }
 
 .submit-btn {
-  background-color: var(--bg-deep);
+  background: var(--primary);
   color: white;
-  padding: 1rem;
   border: none;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 1rem;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
-  margin-top: 1rem;
 }
 
 .cancel-btn {
   background: transparent;
-  color: var(--border-muted);
+  color: var(--text-muted);
   border: none;
-  font-size: 0.9rem;
-  cursor: pointer;
-  text-decoration: underline;
-}
-
-textarea {
-  resize: none;
-  height: 80px;
+  padding: 8px;
+  font-size: 12px;
+  font-weight: 600;
 }

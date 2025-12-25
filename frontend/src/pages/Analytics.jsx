@@ -61,7 +61,13 @@ const Analytics = () => {
   const fetchTransactions = async () => {
     try {
       const res = await getTransactions();
-      setTransactions(res.data || []);
+
+      const cleanedData = (Array.isArray(res) ? res : []).map((t) => ({
+        ...t,
+        amount: Number(t.amount) || 0,
+      }));
+
+      setTransactions(cleanedData);
     } catch (err) {
       console.error("Failed to fetch transactions", err);
     }
@@ -284,30 +290,33 @@ const Analytics = () => {
         </div>
 
         <div className="filter-bar">
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(Number(e.target.value))}
-          >
-            {availableYears.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
-
-          {(range === "month" || range === "week") && (
+          <div className="slect">
             <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(Number(e.target.value))}
             >
-              {Array.from({ length: 12 }).map((_, i) => (
-                <option key={i} value={i}>
-                  {new Date(0, i).toLocaleString("default", { month: "long" })}
+              {availableYears.map((y) => (
+                <option key={y} value={y}>
+                  {y}
                 </option>
               ))}
             </select>
-          )}
 
+            {(range === "month" || range === "week") && (
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              >
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <option key={i} value={i}>
+                    {new Date(0, i).toLocaleString("default", {
+                      month: "long",
+                    })}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
           <div className="range-toggle">
             {["week", "month", "year"].map((r) => (
               <button

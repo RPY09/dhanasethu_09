@@ -1,185 +1,170 @@
 :root {
-  --bg-deep: #10232a;
-  --bg-slate: #3d4d55;
-  --accent-tan: #b58863;
-  --surface-beige: #d3c3b9;
-  --text-dark: #1b1b1b;
-  --text-muted: #a79e9c;
+  --primary: #10232a; /* Deep Teal */
+  --secondary: #3d4d55; /* Slate */
+  --accent: #b58863; /* Tan */
+  --bg-soft: #f4f1ee;
+  --card-bg: #ffffff;
+  --text-main: #10232a;
+  --text-muted: #a79e9c; /* Soft Gray */
+  --income: #2d8a5a;
+  --expense: #d9534f;
+  --invest: #b58863;
+  --radius-md: 16px;
 }
 
-.dashboard-container {
-  padding: 2rem;
-  max-width: 1100px;
-  margin: 0 auto;
-  color: var(--text-dark);
-  font-family: "Inter", sans-serif;
-  background-color: #f8f6f4; /* Subtle off-white bg */
+.tx-wrapper {
+  background-color: var(--bg-soft);
   min-height: 100vh;
+  padding: 20px 16px;
+  font-family: "Inter", system-ui, sans-serif;
+  color: var(--text-main);
 }
 
-.dashboard-header h1 {
-  font-size: 2rem;
-  font-weight: 700;
-  color: var(--bg-deep);
-  margin-bottom: 0.25rem;
-}
-
-.date-display {
-  color: var(--accent-tan);
-  font-weight: 600;
-  margin-bottom: 2rem;
-}
-
-/* Stats Grid */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.stat-card {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-  border: 1px solid var(--surface-beige);
-}
-
-.primary-card {
-  background: var(--bg-deep);
-  color: white;
-}
-
-.stat-card h3 {
-  font-size: 0.9rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 1rem;
-  opacity: 0.8;
-}
-
-.amount {
-  font-size: 2.5rem;
-  font-weight: 700;
-}
-
-.income-text {
-  color: #4a7c59;
-} /* Subtle green */
-.expense-text {
-  color: #a44a3f;
-} /* Subtle red */
-.investment-text {
-  color: var(--accent-tan);
-}
-
-/* Mini Cards */
-.secondary-stats {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 3rem;
-}
-
-.mini-card {
-  background: var(--surface-beige);
-  padding: 0.75rem 1.25rem;
-  border-radius: 12px;
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-/* Recent Activity */
-.recent-section h3 {
-  margin-bottom: 1.5rem;
-  color: var(--bg-slate);
-}
-
-.transaction-list {
-  background: white;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-}
-
-.transaction-row {
+.tx-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid #f0f0f0;
-  transition: background 0.2s;
+  margin-bottom: 24px;
 }
 
-.transaction-row:hover {
-  background: #fafafa;
+.tx-titles h1 {
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: -1px;
 }
 
-.transaction-info {
+.tx-titles p {
+  margin: 4px 0 0;
+  color: var(--accent);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+/* New Primary Balance Card */
+.tx-primary-card {
+  background: var(--primary);
+  color: white;
+  padding: 24px;
+  border-radius: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 10px 30px rgba(16, 35, 42, 0.2);
+}
+
+.tx-balance-label {
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.7;
+  letter-spacing: 1px;
+}
+
+.tx-balance-amount {
+  font-size: 36px;
+  font-weight: 800;
+  margin: 8px 0 20px 0;
+}
+
+.tx-monthly-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tx-month-stat span {
+  display: block;
+  font-size: 10px;
+  opacity: 0.7;
+  margin-bottom: 4px;
+}
+
+.tx-month-stat strong {
+  font-size: 14px;
+}
+
+.tx-month-stat strong.income {
+  color: #4ade80;
+}
+.tx-month-stat strong.expense {
+  color: #f87171;
+}
+.tx-month-stat strong.invest {
+  color: var(--accent);
+}
+
+/* Mini Cards for Cash/Bank */
+.tx-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.tx-mini-card {
+  background: var(--card-bg);
+  padding: 16px;
+  border-radius: var(--radius-md);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+/* List Style (Same as Transactions) */
+.tx-list {
   display: flex;
   flex-direction: column;
+  gap: 10px;
 }
 
-.category {
-  font-weight: 600;
-  color: var(--text-dark);
+.tx-card {
+  background: var(--card-bg);
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.type-tag {
-  font-size: 0.75rem;
+.tx-category {
+  display: block;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.tx-meta {
+  font-size: 11px;
+  font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
 }
 
-.amount-tag {
+.tx-amount {
+  font-weight: 800;
+  font-size: 16px;
+}
+
+.tx-amount.income {
+  color: var(--income);
+}
+.tx-amount.expense {
+  color: var(--expense);
+}
+
+.tx-date-box {
+  background: white;
+  padding: 8px 12px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.tx-day {
+  display: block;
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--primary);
+}
+.tx-month {
+  font-size: 10px;
   font-weight: 700;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.9rem;
-}
-
-.amount-tag.income {
-  background: #e8f5e9;
-  color: #2e7d32;
-}
-.amount-tag.expense {
-  background: #ffebee;
-  color: #c62828;
-}
-.amount-tag.investment {
-  background: #f3e5f5;
-  color: #7b1fa2;
-}
-.stat-card,
-.transaction-row,
-.mini-card {
-  transition:
-    transform 0.3s cubic-bezier(0.17, 0.67, 0.83, 0.67),
-    box-shadow 0.3s ease,
-    background-color 0.2s ease;
-  will-change: transform; /* Performance optimization for animations */
-}
-
-.stat-card:hover {
-  box-shadow: 0 10px 30px rgba(16, 35, 42, 0.1); /* Use palette deep navy for shadow */
-}
-/* Dashboard.css updates */
-.stats-grid {
-  grid-template-columns: repeat(
-    auto-fit,
-    minmax(240px, 1fr)
-  ); /* Better responsiveness */
-}
-
-@media (max-width: 576px) {
-  .dashboard-container {
-    padding: 1rem;
-  }
-  .dashboard-header h1 {
-    font-size: 1.5rem;
-  }
-  .amount {
-    font-size: 1.5rem;
-  }
+  color: var(--accent);
+  text-transform: uppercase;
 }

@@ -1,145 +1,149 @@
 :root {
-  --bg-deep: #10232a;
-  --bg-slate: #3d4d55;
-  --accent-tan: #b58863;
-  --surface-beige: #d3c3b9;
-  --text-dark: #1b1b1b;
+  --primary: #10232a;
+  --accent: #b58863;
+  --bg-soft: #f4f1ee;
+  --card-bg: #ffffff;
+  --text-main: #10232a;
   --text-muted: #a79e9c;
+  --radius-lg: 24px;
+  --radius-md: 16px;
 }
 
 .analytics-container {
-  padding: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
-  background-color: #f8f6f4;
+  padding: 20px 16px 100px; /* Space for bottom nav */
+  background-color: var(--bg-soft);
   min-height: 100vh;
+  font-family: "Inter", system-ui, sans-serif;
 }
 
 .analytics-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 2rem;
-  flex-wrap: wrap;
-  gap: 1.5rem;
+  margin-bottom: 24px;
 }
 
 .analytics-header h1 {
-  color: var(--bg-deep);
-  font-size: 2rem;
-  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--primary);
+  letter-spacing: -1px;
 }
 
-.subtitle {
-  color: var(--text-muted);
-  font-size: 0.9rem;
-}
-
-/* Filter Controls */
+/* Uniform Filter Bar */
 .filter-bar {
   display: flex;
+  flex-direction: column;
   gap: 12px;
-  align-items: center;
+  margin-top: 16px;
+}
+
+.slect {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 10px;
 }
 
 select {
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--surface-beige);
-  background: white;
-  font-family: inherit;
-  color: var(--bg-deep);
-  cursor: pointer;
+  background: var(--card-bg);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 12px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  color: var(--primary);
 }
 
 .range-toggle {
-  background: #eee;
+  background: rgba(16, 35, 42, 0.05);
   padding: 4px;
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   display: flex;
 }
 
 .range-toggle button {
-  padding: 6px 16px;
+  flex: 1;
+  padding: 10px;
   border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.8rem;
-  text-transform: capitalize;
-  transition: all 0.3s ease;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
   background: transparent;
+  transition: all 0.2s ease;
 }
 
 .range-toggle button.active {
-  background: white;
-  color: var(--bg-deep);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  font-weight: 600;
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 4px 12px rgba(16, 35, 42, 0.2);
 }
 
-/* Stats Grid */
+/* Grid Stats */
 .analytics-stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  grid-template-columns: repeat(2, 1fr); /* 2x2 grid for mobile */
+  gap: 12px;
+  margin-bottom: 24px;
 }
 
 .stat-card {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 16px;
-  border: 1px solid rgba(211, 195, 185, 0.5);
+  background: var(--card-bg);
+  padding: 16px;
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
 }
 
 .stat-card span {
-  font-size: 0.8rem;
+  font-size: 10px;
+  font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 1px;
 }
 
 .stat-card h3 {
-  margin: 8px 0 0 0;
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 800;
+  margin-top: 4px;
 }
 
 .primary-card {
-  background: var(--bg-deep);
+  background: var(--primary);
   color: white;
+  grid-column: span 2; /* Full width balance card */
 }
 
-/* Chart Cards */
+/* Charts */
 .chart-card {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 20px;
-  border: 1px solid rgba(211, 195, 185, 0.5);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  background: var(--card-bg);
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  margin-bottom: 20px;
 }
 
 .chart-card h3 {
-  font-size: 1.1rem;
-  color: var(--bg-slate);
-  margin-bottom: 1.5rem;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary);
+  text-transform: uppercase;
+  margin-bottom: 16px;
 }
 
 .pie-section {
-  display: grid;
-  grid-template-columns: 1fr 1.5fr;
-  gap: 1.5rem;
-  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
-@media (max-width: 768px) {
-  .filter-bar {
-    flex-direction: column;
+/* Desktop Fixes */
+@media (min-width: 768px) {
+  .analytics-stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .primary-card {
+    grid-column: span 1;
   }
   .pie-section {
-    grid-template-columns: 1fr;
+    flex-direction: row;
   }
-  .analytics-header {
-    flex-direction: column;
+  .chart-card {
+    flex: 1;
   }
 }

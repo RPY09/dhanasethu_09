@@ -1,359 +1,184 @@
 :root {
-  --bg-deep: #10232a;
-  --bg-slate: #3d4d55;
-  --accent-tan: #b58863;
-  --surface-beige: #d3c3b9;
-  --text-dark: #1b1b1b;
-  --text-muted: #a79e9c;
+  --primary: #10232a;
+  --secondary: #3d4d55;
+  --accent: #b58863;
+  --bg-soft: #f4f1ee;
+  --card-bg: #ffffff;
+  --text-main: #10232a;
+  --text-muted: #7a868a;
+  --income: #2d8a5a;
+  --expense: #d9534f;
+  --radius-lg: 24px;
+  --radius-md: 12px;
 }
 
-/* Container */
-.transactions-container {
-  padding: 2rem;
-  max-width: 900px;
-  margin: 0 auto;
-  background-color: #f8f6f4;
+.tx-wrapper {
+  background-color: var(--bg-soft);
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
+  padding: 20px 16px;
+  font-family: "Inter", system-ui, sans-serif;
+  color: var(--text-main);
 }
 
-/* Header */
-.transactions-header {
+/* Header Section */
+.tx-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 24px;
+}
+
+.tx-titles h1 {
+  font-size: 28px;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.tx-titles p {
+  margin: 4px 0 0;
+  color: var(--accent);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+
+.tx-add-fab {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  border: none;
+  font-size: 24px;
+  box-shadow: 0 8px 16px rgba(16, 35, 42, 0.2);
+}
+
+/* Controls / Filters */
+.tx-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.tx-select-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.tx-controls select {
+  background: var(--card-bg);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 12px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  color: var(--secondary);
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+}
+
+/* Transaction Cards */
+.tx-list {
+  display: flex;
+  flex-direction: column;
   gap: 12px;
 }
 
-.transactions-header h2 {
-  color: var(--bg-deep);
-  font-size: 1.75rem;
-  margin-bottom: 0.25rem;
+.tx-card {
+  background: var(--card-bg);
+  padding: 16px;
+  border-radius: var(--radius-md);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
-.transactions-header p {
-  color: var(--text-muted);
-  font-size: 0.9rem;
+.tx-card-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
-/* Add Button */
-.add-btn {
-  background-color: var(--bg-deep);
-  color: white;
-  padding: 0.6rem 1.2rem;
+.tx-date-box {
+  background: var(--bg-soft);
+  padding: 8px;
   border-radius: 10px;
-  border: none;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.2s;
+  text-align: center;
+  min-width: 40px;
 }
 
-.add-btn:hover {
-  transform: translateY(-2px);
-  background-color: var(--bg-slate);
+.tx-day {
+  display: block;
+  font-weight: 800;
+  font-size: 16px;
 }
 
-/* Filter / controls row */
-.controls-row {
+.tx-month {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.tx-category {
+  display: block;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.tx-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.tx-card-right {
+  text-align: right;
+}
+
+.tx-amount {
+  display: block;
+  font-weight: 800;
+  font-size: 16px;
+  margin-bottom: 6px;
+}
+
+.tx-amount.income {
+  color: var(--income);
+}
+.tx-amount.expense {
+  color: var(--expense);
+}
+
+.tx-actions {
   display: flex;
   gap: 8px;
-  align-items: center;
-  margin-bottom: 1rem;
-  flex-wrap: wrap;
 }
 
-.controls-row select,
-.controls-row button {
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--surface-beige);
-  background: white;
-  font-family: inherit;
-  color: var(--bg-deep);
-  cursor: pointer;
-}
-
-/* Scrollable list container */
-.transactions-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  /* make the list container scrollable, not the whole window */
-  max-height: calc(100vh - 320px); /* default for desktop */
-  overflow: auto;
-  padding: 8px;
-  border-radius: 12px;
-  box-sizing: border-box;
-}
-
-/* Individual row */
-.transaction-item {
-  background: white;
-  padding: 1rem 1.25rem;
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  border: 1px solid rgba(211, 195, 185, 0.3);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-  transition:
-    transform 0.12s ease,
-    background 0.12s ease;
-}
-
-/* Date badge (left) */
-.date-badge {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 56px;
-  padding-right: 1rem;
-  border-right: 2px solid var(--surface-beige);
-  box-sizing: border-box;
-}
-
-.day {
-  font-weight: 800;
-  font-size: 1.2rem;
-  color: var(--bg-deep);
-}
-
-.month {
-  font-size: 0.75rem;
+.tx-actions button {
+  background: none;
+  border: none;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--secondary);
   text-transform: uppercase;
-  color: var(--accent-tan);
-  font-weight: 700;
-}
-
-/* Details */
-.details {
-  flex-grow: 1;
-  min-width: 0; /* allow truncation */
-}
-
-.category {
-  display: block;
-  font-weight: 600;
-  font-size: 1.05rem;
-  color: var(--text-dark);
-  margin-bottom: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.meta {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  text-transform: capitalize;
-}
-
-/* amount */
-.amount-section {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  min-width: 120px;
-  margin-left: 8px;
-}
-
-.amount {
-  font-weight: 700;
-  font-size: 1.05rem;
-}
-
-.amount.income {
-  color: #4a7c59;
-}
-.amount.expense {
-  color: #a44a3f;
-}
-
-/* Actions */
-.actions {
-  display: flex;
-  gap: 0.5rem;
-  margin-left: 8px;
-}
-
-.action-btn {
-  padding: 0.5rem 0.8rem;
-  border-radius: 8px;
-  font-size: 0.8rem;
-  font-weight: 600;
+  padding: 0;
   cursor: pointer;
-  border: 1px solid transparent;
-  transition: all 0.2s;
 }
 
-.action-btn.edit {
-  background: #f0f0f0;
-  color: var(--bg-slate);
+.tx-actions button.del {
+  color: var(--expense);
 }
 
-.action-btn.delete {
-  background: #fff0f0;
-  color: #a44a3f;
-}
-
-.action-btn:hover {
-  opacity: 0.9;
-  transform: translateY(-2px);
-}
-
-/* Footer inside scroll area */
-.list-footer {
-  padding: 1rem;
+.tx-loader {
   text-align: center;
-  color: var(--text-muted);
-}
-
-/* Hover */
-.transaction-item:hover {
-  transform: translateY(-4px);
-  background: #fcfcfc;
-}
-
-/* ---------------------------
-   RESPONSIVE RULES
-   --------------------------- */
-
-/* Tablet and below */
-@media (max-width: 980px) {
-  .transactions-container {
-    padding: 1.25rem;
-    max-width: 720px;
-  }
-  .transactions-header h2 {
-    font-size: 1.5rem;
-  }
-  .transactions-list {
-    max-height: calc(100vh - 300px);
-  }
-  .date-badge {
-    min-width: 50px;
-    padding-right: 0.75rem;
-  }
-  .amount-section {
-    min-width: 110px;
-  }
-}
-
-/* Mobile: stack the row content vertically for better readability */
-@media (max-width: 640px) {
-  .transactions-container {
-    padding: 1rem;
-  }
-
-  .transactions-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-
-  .controls-row {
-    width: 100%;
-    gap: 6px;
-  }
-
-  .controls-row select,
-  .controls-row button {
-    padding: 8px;
-    font-size: 0.9rem;
-  }
-
-  /* make list taller on mobile to use available screen */
-  .transactions-list {
-    max-height: calc(100vh - 260px);
-    padding: 6px;
-  }
-
-  /* make each transaction card vertical */
-  .transaction-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-    padding: 10px;
-  }
-
-  /* move date badge to be inline (top-left) and remove right border */
-  .date-badge {
-    flex-direction: row;
-    align-items: center;
-    min-width: 0;
-    padding: 0;
-    border-right: none;
-    gap: 8px;
-  }
-  .date-badge .day {
-    font-size: 1rem;
-  }
-  .date-badge .month {
-    font-size: 0.75rem;
-  }
-
-  .details {
-    width: 100%;
-  }
-
-  .category {
-    font-size: 1rem;
-    white-space: normal;
-  }
-
-  .meta {
-    font-size: 0.78rem;
-  }
-
-  /* amount and actions stack below details, full width */
-  .amount-section {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    min-width: 0;
-    margin-left: 0;
-    padding-top: 6px;
-    border-top: 1px dashed rgba(211, 195, 185, 0.12);
-  }
-
-  .amount {
-    font-size: 1rem;
-  }
-
-  .actions {
-    gap: 8px;
-  }
-
-  .action-btn {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.85rem;
-  }
-}
-
-/* Very small screens */
-@media (max-width: 420px) {
-  .transactions-container {
-    padding: 0.75rem;
-  }
-  .transactions-list {
-    max-height: calc(100vh - 220px);
-  }
-
-  .transaction-item {
-    padding: 8px;
-    border-radius: 12px;
-  }
-
-  .category {
-    font-size: 0.98rem;
-  }
-
-  .action-btn {
-    padding: 0.45rem 0.6rem;
-    font-size: 0.78rem;
-  }
+  padding: 20px;
+  font-size: 13px;
+  color: var(--accent);
+  font-weight: 600;
 }

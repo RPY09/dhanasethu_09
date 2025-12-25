@@ -46,15 +46,18 @@ const AddTransaction = () => {
 
         <form onSubmit={handleSubmit} className="modern-form">
           <div className="input-group">
-            <label>Amount</label>
-            <input
-              type="number"
-              name="amount"
-              placeholder="0.00"
-              required
-              onChange={handleChange}
-              className="main-input"
-            />
+            <label>Amount (INR)</label>
+            <div className="main-input-wrap">
+              <input
+                type="number"
+                name="amount"
+                placeholder="0"
+                value={form.amount} // for Edit page
+                required
+                onChange={handleChange}
+                className="main-input"
+              />
+            </div>
           </div>
 
           <div className="row">
@@ -104,23 +107,24 @@ const AddTransaction = () => {
               onChange={handleChange}
             />
           </div>
+          <div className="actionbtns">
+            <motion.button
+              type="submit"
+              className="submit-btn"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              Save Transaction
+            </motion.button>
 
-          <motion.button
-            type="submit"
-            className="submit-btn"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            Save Transaction
-          </motion.button>
-
-          <button
-            type="button"
-            className="cancel-btn"
-            onClick={() => navigate(-1)}
-          >
-            Cancel
-          </button>
+            <button
+              type="button"
+              className="cancel-btn submit-btn"
+              onClick={() => navigate(-1)}
+            >
+              Cancel
+            </button>
+          </div>
         </form>
       </div>
     </motion.div>

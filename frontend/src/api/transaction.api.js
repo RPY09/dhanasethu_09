@@ -1,10 +1,31 @@
 import api from "./axios";
 
-export const addTransaction = (data) => api.post("/transactions", data);
+/**
+ * API helpers that consistently return `response.data`.
+ * This avoids downstream code needing to check `res` vs `res.data`.
+ */
 
-export const getTransactions = () => api.get("/transactions");
-export const updateTransaction = (id, data) =>
-  api.put(`/transactions/${id}`, data);
+export const addTransaction = async (data) => {
+  const res = await api.post("/transactions", data);
+  return res.data;
+};
 
-export const deleteTransaction = (id) => api.delete(`/transactions/${id}`);
-export const getTransactionById = (id) => api.get(`/transactions/${id}`);
+export const getTransactions = async (params = {}) => {
+  const res = await api.get("/transactions", { params });
+  return res.data;
+};
+
+export const updateTransaction = async (id, data) => {
+  const res = await api.put(`/transactions/${id}`, data);
+  return res.data;
+};
+
+export const deleteTransaction = async (id) => {
+  const res = await api.delete(`/transactions/${id}`);
+  return res.data;
+};
+
+export const getTransactionById = async (id) => {
+  const res = await api.get(`/transactions/${id}`);
+  return res.data;
+};

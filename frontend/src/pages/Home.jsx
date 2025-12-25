@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 const Home = () => {
   return (
     <section style={{ padding: "80px 40px", textAlign: "center" }}>
@@ -8,9 +10,11 @@ const Home = () => {
       </p>
 
       <div style={{ marginTop: "32px" }}>
-        <button style={{ padding: "12px 24px", marginRight: "12px" }}>
-          Get Started
-        </button>
+        <Link to="/login">
+          <button style={{ padding: "12px 24px", marginRight: "12px" }}>
+            Get Started
+          </button>
+        </Link>
         <button style={{ padding: "12px 24px" }}>Learn More</button>
       </div>
     </section>
