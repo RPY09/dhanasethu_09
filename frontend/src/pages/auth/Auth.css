@@ -144,3 +144,32 @@
     transform: rotate(360deg);
   }
 }
+/* Add these to your Auth.css */
+
+.pwd-btn {
+  background: white;
+  border: 1.5px solid var(--accent);
+  color: var(--accent);
+  padding: 12px;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.pwd-btn:hover {
+  background: var(--bg-soft);
+}
+
+.cancel-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.cancel-link:hover {
+  text-decoration: underline;
+}
