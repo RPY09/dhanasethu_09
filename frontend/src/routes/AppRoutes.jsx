@@ -8,6 +8,7 @@ import AddTransaction from "../pages/AddTransaction";
 import Transactions from "../pages/Transactions";
 import EditTransaction from "../pages/EditTransaction";
 import Analytics from "../pages/Analytics";
+import Profile from "../pages/Profile";
 
 const AppRoutes = () => {
   console.log("Routes rendered");
@@ -22,6 +23,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <Profile />
           </ProtectedRoute>
         }
       />

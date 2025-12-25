@@ -70,7 +70,12 @@ const Navbar = () => {
         <div className="zira-logo" onClick={() => navigate("/dashboard")}>
           Dhana<span>Sethu</span>
         </div>
-        <div className="zira-user-avatar">
+        {/* Update this div to navigate to profile */}
+        <div
+          className="zira-user-avatar"
+          onClick={() => navigate("/profile")}
+          style={{ cursor: "pointer" }}
+        >
           <i className="bi bi-person-circle"></i>
         </div>
       </header>
