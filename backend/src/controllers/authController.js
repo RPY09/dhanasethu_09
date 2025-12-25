@@ -149,3 +149,69 @@ exports.resetPasswordOtp = async (req, res) => {
     res.status(500).json({ message: "Password reset failed" });
   }
 };
+// Add these to authController.js
+
+// SEND OTP for Forgot Password (Public)
+exports.forgotPasswordRequest = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res
+        .status(404)
+        .json({ message: "No account found with this email" });
+    }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    await Otp.create({ email, otp });
+
+    // Send OTP via email
+    await sendEmail({
+      email,
+      subject: "DhanaSethu Login OTP",
+      message: `Your OTP for login is: ${otp}. It will expire in 10 minutes.`,
+    });
+
+    res.json({ message: "OTP sent to your email" });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to send OTP" });
+  }
+};
+
+// LOGIN via OTP (Public)
+exports.loginViaOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    const otpRecord = await Otp.findOne({ email, otp });
+
+    if (!otpRecord) {
+      return res.status(400).json({ message: "Invalid or expired OTP" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Generate JWT for the user
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+
+    // Delete OTP record after successful use
+    await Otp.deleteOne({ _id: otpRecord._id });
+
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        number: user.number,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Login failed" });
+  }
+};
