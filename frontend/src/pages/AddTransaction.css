@@ -3,90 +3,83 @@
   --accent: #b58863;
   --bg-soft: #f4f1ee;
   --card-bg: #ffffff;
-  --text-main: #10232a;
   --text-muted: #a79e9c;
   --radius-lg: 24px;
-  --radius-md: 12px; /* Slightly tighter radius */
+  --radius-md: 12px;
 }
 
 .form-container {
   background-color: var(--bg-soft);
-  height: 780px; /* Locked Height */
-  max-height: 780px;
-  width: 100%;
-  padding: 20px 16px;
+  height: 70vh;
+  /* max-height: 780px Forces height limit */
+  width: 100vw;
   display: flex;
-  flex-direction: column;
+  justify-content: center;
   align-items: center;
-  justify-content: flex-start; /* Centers the card vertically */
-  overflow: hidden; /* Prevents container scroll */
+  padding: 0 16px;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .form-card {
   background: var(--card-bg);
   width: 100%;
-  max-width: 420px;
-  padding: 20px; /* Reduced padding */
+  max-width: 400px;
+  padding: 20px;
   border-radius: var(--radius-lg);
   box-shadow: 0 10px 30px rgba(16, 35, 42, 0.05);
-  box-sizing: border-box;
 }
 
 .form-header {
-  text-align: left;
-  margin-bottom: 15px; /* Tightened header margin */
+  margin-bottom: 15px;
 }
 
 .form-header h2 {
-  font-size: 20px; /* Smaller font for height saving */
+  font-size: 20px;
   font-weight: 800;
   color: var(--primary);
-  margin-bottom: 2px;
+  margin: 0;
 }
 
 .form-header p {
   font-size: 11px;
   color: var(--accent);
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
 .modern-form {
   display: flex;
   flex-direction: column;
-  gap: 12px; /* Reduced gap between elements */
+  gap: 12px;
 }
 
 .input-group {
   display: flex;
   flex-direction: column;
-  gap: 4px; /* Minimal internal gap */
+  gap: 4px;
 }
 
 .input-group label {
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--text-muted);
   text-transform: uppercase;
-  margin-left: 2px;
 }
 
-/* Compact Big Amount Input */
 .main-input-wrap {
   background: var(--bg-soft);
-  padding: 12px; /* Reduced padding */
+  padding: 10px;
   border-radius: var(--radius-md);
-  text-align: center;
 }
 
 .main-input {
   background: transparent !important;
   border: none !important;
-  font-size: 26px !important; /* Smaller size to save vertical space */
+  font-size: 28px !important;
   font-weight: 800 !important;
   color: var(--primary) !important;
   width: 100%;
-  padding: 0 !important;
   text-align: center;
 }
 
@@ -95,11 +88,12 @@ select,
 textarea {
   background: #fafafa;
   border: 1.5px solid #ececec;
-  padding: 10px 14px; /* Tighter padding */
+  padding: 10px;
   border-radius: var(--radius-md);
   font-size: 14px;
-  font-family: inherit;
-  color: var(--text-main);
+  color: var(--primary);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .row {
@@ -109,11 +103,10 @@ textarea {
 }
 
 textarea {
-  height: 50px; /* Significantly shorter height */
+  height: 45px;
   resize: none;
 }
 
-/* Tighter Button Styles */
 .actionbtns {
   display: flex;
   flex-direction: column;
@@ -127,16 +120,15 @@ textarea {
   border: none;
   padding: 14px;
   border-radius: var(--radius-md);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
-  cursor: pointer;
 }
 
 .cancel-btn {
   background: transparent;
   color: var(--text-muted);
   border: none;
-  padding: 8px;
   font-size: 12px;
   font-weight: 600;
+  cursor: pointer;
 }

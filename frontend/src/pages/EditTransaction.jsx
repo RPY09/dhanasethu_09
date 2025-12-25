@@ -46,6 +46,7 @@ const EditTransaction = () => {
         </header>
 
         <form onSubmit={handleSubmit} className="modern-form">
+          {/* Row 1: Amount */}
           <div className="input-group">
             <label>Amount (INR)</label>
             <div className="main-input-wrap">
@@ -53,7 +54,7 @@ const EditTransaction = () => {
                 type="number"
                 name="amount"
                 placeholder="0"
-                value={form.amount} // for Edit page
+                value={form.amount}
                 required
                 onChange={handleChange}
                 className="main-input"
@@ -61,6 +62,7 @@ const EditTransaction = () => {
             </div>
           </div>
 
+          {/* Row 2: Type & Payment Mode */}
           <div className="row">
             <div className="input-group">
               <label>Type</label>
@@ -70,9 +72,8 @@ const EditTransaction = () => {
                 <option value="invest">Invest</option>
               </select>
             </div>
-
             <div className="input-group">
-              <label>Payment Mode</label>
+              <label>Mode</label>
               <select
                 name="paymentMode"
                 value={form.paymentMode}
@@ -84,52 +85,59 @@ const EditTransaction = () => {
             </div>
           </div>
 
-          <div className="input-group">
-            <label>Category</label>
-            <input
-              name="category"
-              value={form.category}
-              onChange={handleChange}
-              required
-            />
+          {/* Row 3: Category & Date (New Row to save space) */}
+          <div className="row">
+            <div className="input-group">
+              <label>Category</label>
+              <input
+                name="category"
+                placeholder="Food..."
+                value={form.category}
+                required
+                onChange={handleChange}
+              />
+            </div>
+            <div className="input-group">
+              <label>Date</label>
+              <input
+                type="date"
+                name="date"
+                value={form.date}
+                onChange={handleChange}
+              />
+            </div>
           </div>
 
-          <div className="input-group">
-            <label>Date</label>
-            <input
-              type="date"
-              name="date"
-              value={form.date}
-              onChange={handleChange}
-            />
-          </div>
-
+          {/* Row 4: Notes */}
           <div className="input-group">
             <label>Notes</label>
             <textarea
               name="note"
+              placeholder="Brief description..."
               value={form.note}
               onChange={handleChange}
-              placeholder="Add a note..."
             />
           </div>
 
-          <motion.button
-            type="submit"
-            className="submit-btn update"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            Update Transaction
-          </motion.button>
+          {/* Actions */}
+          <div className="actionbtns">
+            <motion.button
+              type="submit"
+              className="submit-btn"
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+            >
+              {state ? "Update Transaction" : "Save Transaction"}
+            </motion.button>
 
-          <button
-            type="button"
-            className="cancel-btn"
-            onClick={() => navigate(-1)}
-          >
-            Discard Changes
-          </button>
+            <button
+              type="button"
+              className="cancel-btn"
+              onClick={() => navigate(-1)}
+            >
+              {state ? "Discard Changes" : "Cancel"}
+            </button>
+          </div>
         </form>
       </div>
     </motion.div>
