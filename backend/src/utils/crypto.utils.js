@@ -20,18 +20,28 @@ exports.encrypt = (text) => {
 };
 
 exports.decrypt = (text) => {
-  if (!text || !text.includes(":")) return text;
+  // If text is falsy or doesn't look encrypted (no ':'), return as-is
+  if (!text || !String(text).includes(":")) return text;
 
-  const keyString = process.env.ENCRYPTION_KEY || "";
-  const key = Buffer.alloc(32, keyString, "utf-8"); // Force strictly 32 bytes
+  try {
+    const keyString = process.env.ENCRYPTION_KEY || "";
+    const key = Buffer.alloc(32, keyString, "utf-8"); // Force strictly 32 bytes
 
-  const textParts = text.split(":");
-  const iv = Buffer.from(textParts.shift(), "hex");
-  const encryptedText = Buffer.from(textParts.join(":"), "hex");
+    const textParts = String(text).split(":");
+    const iv = Buffer.from(textParts.shift(), "hex");
+    const encryptedText = Buffer.from(textParts.join(":"), "hex");
 
-  const decipher = crypto.createDecipheriv(algorithm, key, iv);
-  let decrypted = decipher.update(encryptedText);
-  decrypted = Buffer.concat([decrypted, decipher.final()]);
+    const decipher = crypto.createDecipheriv(algorithm, key, iv);
+    let decrypted = decipher.update(encryptedText);
+    decrypted = Buffer.concat([decrypted, decipher.final()]);
 
-  return decrypted.toString();
+    return decrypted.toString();
+  } catch (err) {
+    // Log the error and return original value to avoid throwing in request handlers
+    console.warn(
+      "crypto.decrypt failed — returning raw value. Error:",
+      err && err.message ? err.message : err
+    );
+    return text;
+  }
 };
