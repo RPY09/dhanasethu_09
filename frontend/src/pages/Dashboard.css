@@ -95,7 +95,7 @@
 }
 
 /* Mini Cards for Cash/Bank */
-.tx-controls {
+.txs-controls {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
@@ -104,6 +104,7 @@
 .tx-mini-card {
   background: var(--card-bg);
   padding: 16px;
+  width: 80%;
   border-radius: var(--radius-md);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }

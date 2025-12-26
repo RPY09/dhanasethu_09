@@ -139,7 +139,7 @@ const Dashboard = () => {
         </div>
       </motion.div>
 
-      <div className="tx-controls" style={{ marginBottom: "24px" }}>
+      <div className="txs-controls" style={{ marginBottom: "24px" }}>
         <div className="tx-mini-card">
           <span className="tx-meta">CASH BALANCE</span>
           <span className="tx-category">₹{formatCurrency(cashBalance)}</span>
