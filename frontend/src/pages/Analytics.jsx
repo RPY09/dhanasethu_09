@@ -53,6 +53,7 @@ const Analytics = () => {
   const [range, setRange] = useState("month"); // "week" | "month" | "year"
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [paymentFilter, setPaymentFilter] = useState("income");
 
   useEffect(() => {
     fetchTransactions();
@@ -141,18 +142,23 @@ const Analytics = () => {
   const paymentTypeData = useMemo(() => {
     let cash = 0;
     let online = 0;
+
     filteredTransactions
-      .filter((t) => t.type === "expense")
+      .filter((t) => {
+        if (paymentFilter === "all") return t.type !== "invest";
+        return t.type === paymentFilter;
+      })
       .forEach((t) => {
         const mode = (t.paymentMode || "").toLowerCase();
         if (mode === "cash") cash += Number(t.amount || 0);
         else online += Number(t.amount || 0);
       });
+
     return [
       { name: "Cash", value: cash },
       { name: "Online", value: online },
     ];
-  }, [filteredTransactions]);
+  }, [filteredTransactions, paymentFilter]);
 
   const cashTotal = paymentTypeData.find((d) => d.name === "Cash")?.value || 0;
   const onlineTotal =
@@ -171,6 +177,22 @@ const Analytics = () => {
     return Object.keys(expenseByCategory).map((cat) => ({
       name: cat,
       value: expenseByCategory[cat],
+    }));
+  }, [filteredTransactions]);
+
+  const investmentCategoryData = useMemo(() => {
+    const investByCategory = {};
+    filteredTransactions
+      .filter((t) => isInvestment(t))
+      .forEach((t) => {
+        const cat = t.category || "Uncategorized";
+        investByCategory[cat] =
+          (investByCategory[cat] || 0) + Number(t.amount || 0);
+      });
+
+    return Object.keys(investByCategory).map((cat) => ({
+      name: cat,
+      value: investByCategory[cat],
     }));
   }, [filteredTransactions]);
 
@@ -397,7 +419,17 @@ const Analytics = () => {
       {/* PIE CHARTS SECTION */}
       <div className="pie-section">
         <div className="chart-card">
-          <h3>Payment Methods</h3>
+          <div className="headerselect">
+            <h3>Payment Methods</h3>
+            <select
+              value={paymentFilter}
+              onChange={(e) => setPaymentFilter(e.target.value)}
+            >
+              {/* <option value="all">All Transactions</option> */}
+              <option value="income">Income Only</option>
+              <option value="expense">Expense Only</option>
+            </select>
+          </div>
           <div className="chart-wrapper">
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
@@ -438,6 +470,24 @@ const Analytics = () => {
               </PieChart>
             </ResponsiveContainer>
           </div>
+        </div>
+        <div className="chart-card">
+          <h3>Investment Breakdown</h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <PieChart>
+              <Pie
+                data={investmentCategoryData}
+                outerRadius={80}
+                dataKey="value"
+              >
+                {investmentCategoryData.map((_, i) => (
+                  <Cell key={i} fill={COLORS[(i + 3) % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
         </div>
       </div>
 

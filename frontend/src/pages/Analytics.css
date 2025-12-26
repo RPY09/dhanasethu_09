@@ -109,7 +109,9 @@ select {
   color: white;
   grid-column: span 2; /* Full width balance card */
 }
-
+.headerselect {
+  display: flex;
+}
 /* Charts */
 .chart-card {
   background: var(--card-bg);

@@ -23,9 +23,14 @@ const AddTransaction = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const payload = {
+      ...form,
+      category: form.category.trim().toLowerCase(), // ✅ SAFE
+    };
+
     try {
-      await addTransaction(form);
-      // Trigger a refresh event for the dashboard/history pages
+      await addTransaction(payload);
       window.dispatchEvent(new Event("transactions:changed"));
       navigate("/transactions");
     } catch (err) {
@@ -53,7 +58,7 @@ const AddTransaction = () => {
               <input
                 type="number"
                 name="amount"
-                placeholder="0"
+                placeholder="₹0.00"
                 value={form.amount}
                 required
                 onChange={handleChange}

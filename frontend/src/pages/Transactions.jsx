@@ -96,8 +96,15 @@ const Transactions = () => {
       }
 
       const serverData = normalizeResponse(res);
+      const filteredByDate = serverData.filter((t) => {
+        const d = new Date(t.date);
+        return (
+          d.getFullYear() === selectedYear && d.getMonth() === selectedMonth
+        );
+      });
+
       // sort & normalize
-      const processedData = serverData.slice().sort((a, b) => {
+      const processedData = filteredByDate.slice().sort((a, b) => {
         if (sortBy === "newest") return parseDate(b.date) - parseDate(a.date);
         if (sortBy === "oldest") return parseDate(a.date) - parseDate(b.date);
         if (sortBy === "amount-desc")
@@ -106,7 +113,6 @@ const Transactions = () => {
           return parseAmount(a.amount) - parseAmount(b.amount);
         return 0;
       });
-
       setTransactions((prev) => {
         const merged = isReset ? processedData : [...prev, ...processedData];
 
