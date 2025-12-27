@@ -26,7 +26,7 @@ const AddTransaction = () => {
 
     const payload = {
       ...form,
-      category: form.category.trim().toLowerCase(), // ✅ SAFE
+      category: form.category.trim().toLowerCase(),
     };
 
     try {

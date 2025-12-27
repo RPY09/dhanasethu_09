@@ -9,6 +9,9 @@ import Transactions from "../pages/Transactions";
 import EditTransaction from "../pages/EditTransaction";
 import Analytics from "../pages/Analytics";
 import Profile from "../pages/Profile";
+import Loan from "../pages/Loans";
+import Notifications from "../pages/Notifications";
+import EditLoan from "../pages/EditLoan";
 
 const AppRoutes = () => {
   console.log("Routes rendered");
@@ -31,6 +34,22 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Profile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute>
+            <Notifications />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/edit/:id"
+        element={
+          <ProtectedRoute>
+            <EditLoan />
           </ProtectedRoute>
         }
       />
@@ -67,6 +86,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Analytics />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/loan"
+        element={
+          <ProtectedRoute>
+            <Loan />
           </ProtectedRoute>
         }
       />

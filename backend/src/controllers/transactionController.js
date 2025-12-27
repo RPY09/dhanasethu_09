@@ -1,4 +1,5 @@
 const Transaction = require("../models/TransactionModel");
+const Loan = require("../models/LoanModel");
 
 exports.addTransaction = async (req, res) => {
   try {
@@ -58,11 +59,18 @@ exports.deleteTransaction = async (req, res) => {
       user: req.user._id,
     });
 
-    if (!transaction) {
+    if (!transaction)
       return res.status(404).json({ message: "Transaction not found" });
+
+    // ✅ If it belongs to a loan, delete the loan too
+    if (transaction.loanId) {
+      await Loan.findOneAndDelete({
+        _id: transaction.loanId,
+        user: req.user._id,
+      });
     }
 
-    res.json({ message: "Transaction deleted" });
+    res.json({ message: "Transaction & related loan deleted" });
   } catch (err) {
     res.status(500).json({ message: "Failed to delete transaction" });
   }

@@ -26,6 +26,17 @@ const normalizeResponse = (res) => {
   if (res.data && Array.isArray(res.data.data)) return res.data.data;
   return [];
 };
+const isSettlementTransaction = (t) => {
+  if (!t.loanId) return false;
+
+  const note = (t.note || "").toLowerCase();
+
+  return (
+    note.includes("received") ||
+    note.includes("repaid") ||
+    note.includes("interest")
+  );
+};
 
 const Transactions = () => {
   const [transactions, setTransactions] = useState([]);
@@ -234,7 +245,10 @@ const Transactions = () => {
                     {t.paymentMode} • {t.type}
                   </span>
                   {t.note || t.notes || t.description ? (
-                    <div className="note" style={{ marginTop: 8 }}>
+                    <div
+                      className="note"
+                      style={{ marginTop: 8, width: 155, fontSize: 13 }}
+                    >
                       {t.note || t.notes || t.description}
                     </div>
                   ) : null}
@@ -246,16 +260,24 @@ const Transactions = () => {
                   {parseAmount(t.amount).toLocaleString()}
                 </span>
                 <div className="tx-actions">
-                  <button
-                    onClick={() =>
-                      navigate(`/edit-transaction/${t._id}`, { state: t })
-                    }
-                  >
-                    Edit
-                  </button>
-                  <button className="del" onClick={() => handleDelete(t._id)}>
-                    Delete
-                  </button>
+                  {/* Edit allowed only for non-loan & non-borrow */}
+                  {t.paymentMode !== "loan" && t.paymentMode !== "borrow" && (
+                    <button
+                      onClick={() =>
+                        navigate(`/edit-transaction/${t._id}`, { state: t })
+                      }
+                    >
+                      Edit
+                    </button>
+                  )}
+                  {!(
+                    (t.paymentMode === "loan" || t.paymentMode === "borrow") &&
+                    isSettlementTransaction(t)
+                  ) && (
+                    <button className="del" onClick={() => handleDelete(t._id)}>
+                      Delete
+                    </button>
+                  )}
                 </div>
               </div>
             </motion.div>

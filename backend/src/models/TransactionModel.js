@@ -13,53 +13,69 @@ const transactionSchema = new mongoose.Schema(
       required: true,
     },
     paymentMode: { type: String, required: true },
+    isPrincipal: {
+      type: Boolean,
+      default: false,
+    },
+    loanId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Loan",
+      default: null,
+    },
+
     date: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );
 
+function isEncryptedBlob(str) {
+  if (!str || typeof str !== "string") return false;
+  const parts = str.split(":");
+  if (parts.length < 2) return false;
+  const iv = parts.shift();
+  const cipher = parts.join(":"); // allow colon(s) in cipher just in case
+  // iv must be exactly 32 hex chars (16 bytes)
+  if (!/^[0-9a-fA-F]{32}$/.test(iv)) return false;
+  if (!/^[0-9a-fA-F]+$/.test(cipher)) return false;
+  return true;
+}
+
 transactionSchema.pre("save", function () {
-  // Encrypt amount
   try {
     if (
       this.isModified("amount") &&
       this.amount != null &&
-      !String(this.amount).includes(":")
+      !isEncryptedBlob(String(this.amount))
     ) {
       this.amount = encrypt(this.amount);
     }
 
-    // Encrypt category
     if (
       this.isModified("category") &&
       this.category != null &&
-      !String(this.category).includes(":")
+      !isEncryptedBlob(String(this.category))
     ) {
       this.category = encrypt(this.category);
     }
 
-    // Encrypt note
     if (
       this.isModified("note") &&
-      this.note &&
-      !String(this.note).includes(":")
+      this.note != null &&
+      !isEncryptedBlob(String(this.note))
     ) {
       this.note = encrypt(this.note);
     }
   } catch (err) {
-    // If encryption fails for some reason, surface a clear error
-    // so save() will fail and callers can handle it
     throw new Error(
       "Encryption failed: " + (err && err.message ? err.message : err)
     );
   }
 });
 
-// DECRYPT after fetching (defensive)
+// DECRYPT after fetching (defensive): only attempt decrypt when the value is a full encrypted blob
 transactionSchema.post("init", function (doc) {
-  // Only attempt to decrypt if field is present and contains the IV separator ':'
   try {
-    if (doc.amount && String(doc.amount).includes(":")) {
+    if (doc.amount && isEncryptedBlob(String(doc.amount))) {
       try {
         doc.amount = decrypt(doc.amount);
       } catch (err) {
@@ -68,7 +84,6 @@ transactionSchema.post("init", function (doc) {
           doc._id,
           err && err.message ? err.message : err
         );
-        // leave doc.amount as-is (encrypted value) to avoid throwing
       }
     }
   } catch (err) {
@@ -80,7 +95,7 @@ transactionSchema.post("init", function (doc) {
   }
 
   try {
-    if (doc.category && String(doc.category).includes(":")) {
+    if (doc.category && isEncryptedBlob(String(doc.category))) {
       try {
         doc.category = decrypt(doc.category);
       } catch (err) {
@@ -100,7 +115,7 @@ transactionSchema.post("init", function (doc) {
   }
 
   try {
-    if (doc.note && String(doc.note).includes(":")) {
+    if (doc.note && isEncryptedBlob(String(doc.note))) {
       try {
         doc.note = decrypt(doc.note);
       } catch (err) {

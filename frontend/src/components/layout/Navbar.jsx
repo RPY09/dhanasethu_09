@@ -2,6 +2,7 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import "./Navbar.css";
+import { getLoans } from "../../api/loan.api";
 
 const authNavItems = [
   {
@@ -33,11 +34,11 @@ const authNavItems = [
     type: "link",
   },
   {
-    key: "logout",
-    to: "#",
-    label: "Exit",
-    icon: "bi-door-open",
-    type: "action",
+    key: "loan",
+    to: "/loan",
+    label: "Lend",
+    icon: "bi-cash-coin",
+    type: "link",
   },
 ];
 
@@ -47,10 +48,47 @@ const Navbar = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(
     Boolean(localStorage.getItem("token"))
   );
-
+  const [notificationCount, setNotificationCount] = useState(0); // TEMP
   useEffect(() => {
     setIsAuthenticated(Boolean(localStorage.getItem("token")));
   }, [location.pathname]);
+  useEffect(() => {
+    const isNearOrOverdue = (dueDate) => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const end = new Date(dueDate);
+      end.setHours(0, 0, 0, 0);
+
+      const diffDays = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
+
+      return diffDays <= 7;
+    };
+
+    const fetchLoanNotifications = async () => {
+      try {
+        const loans = await getLoans();
+
+        const count = loans.filter(
+          (l) => l.role === "lent" && !l.settled && isNearOrOverdue(l.dueDate)
+        ).length;
+
+        setNotificationCount(count);
+      } catch {
+        setNotificationCount(0);
+      }
+    };
+
+    fetchLoanNotifications();
+
+    const handler = () => fetchLoanNotifications();
+
+    window.addEventListener("loans:changed", handler);
+
+    return () => {
+      window.removeEventListener("loans:changed", handler);
+    };
+  }, [isAuthenticated]);
 
   const logout = () => {
     localStorage.removeItem("token");
@@ -71,12 +109,28 @@ const Navbar = () => {
           Dhana<span>Sethu</span>
         </div>
         {/* Update this div to navigate to profile */}
-        <div
-          className="zira-user-avatar"
-          onClick={() => navigate("/profile")}
-          style={{ cursor: "pointer" }}
-        >
-          <i className="bi bi-person-circle"></i>
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          {/* Notification Bell */}
+          <div
+            className="zira-bell"
+            onClick={() => navigate("/notifications")}
+            style={{ cursor: "pointer", position: "relative" }}
+          >
+            <i className="bi bi-bell"></i>
+
+            {notificationCount > 0 && (
+              <span className="zira-bell-badge">{notificationCount}</span>
+            )}
+          </div>
+
+          {/* Profile */}
+          <div
+            className="zira-user-avatar"
+            onClick={() => navigate("/profile")}
+            style={{ cursor: "pointer" }}
+          >
+            <i className="bi bi-person-circle"></i>
+          </div>
         </div>
       </header>
 

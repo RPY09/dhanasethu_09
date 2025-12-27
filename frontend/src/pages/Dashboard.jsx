@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { getTransactions } from "../api/transaction.api";
+import { getLoanSummary } from "../api/loan.api";
 import "./Dashboard.css";
 
 const parseNumber = (v) => {
@@ -18,6 +19,22 @@ const detectPaymentMode = (t = {}) => {
 
 const Dashboard = () => {
   const [transactions, setTransactions] = useState([]);
+  const [loanSummary, setLoanSummary] = useState({
+    lent: 0,
+    borrowed: 0,
+  });
+  useEffect(() => {
+    const fetchLoans = async () => {
+      try {
+        const data = await getLoanSummary();
+        setLoanSummary(data);
+      } catch (e) {
+        console.error("Loan summary failed");
+      }
+    };
+
+    fetchLoans();
+  }, []);
 
   const fetchTransactions = useCallback(async () => {
     try {
@@ -36,15 +53,28 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchTransactions();
-    // re-fetch when other pages signal changes (add / edit / delete)
-    const onChanged = () => fetchTransactions();
-    window.addEventListener("transactions:changed", onChanged);
-    return () => window.removeEventListener("transactions:changed", onChanged);
+
+    const onTxChanged = () => fetchTransactions();
+    const onLoanChanged = async () => {
+      fetchTransactions();
+      const data = await getLoanSummary();
+      setLoanSummary(data);
+    };
+
+    window.addEventListener("transactions:changed", onTxChanged);
+    window.addEventListener("loans:changed", onLoanChanged);
+
+    return () => {
+      window.removeEventListener("transactions:changed", onTxChanged);
+      window.removeEventListener("loans:changed", onLoanChanged);
+    };
   }, [fetchTransactions]);
 
   const now = new Date();
   const currentMonthIndex = now.getMonth();
   const currentYear = now.getFullYear();
+  const isPrincipalTxn = (t) =>
+    t.isPrincipal === true || t.isPrincipal === "true";
 
   // --- MONTHLY STATS (Income/Expense/Investment) ---
   const { monthlyIncome, monthlyExpense, monthlyInvest } = useMemo(() => {
@@ -56,11 +86,14 @@ const Dashboard = () => {
           d.getFullYear() === currentYear
         ) {
           const amt = parseNumber(t.amount);
-          if ((t.type || "").toLowerCase() === "income")
+          if ((t.type || "").toLowerCase() === "income" && !isPrincipalTxn(t)) {
             acc.monthlyIncome += amt;
-          else if ((t.type || "").toLowerCase() === "expense")
+          } else if (
+            (t.type || "").toLowerCase() === "expense" &&
+            !isPrincipalTxn(t)
+          ) {
             acc.monthlyExpense += amt;
-          else if (
+          } else if (
             ["investment", "invest"].includes((t.type || "").toLowerCase())
           )
             acc.monthlyInvest += amt;
@@ -147,6 +180,21 @@ const Dashboard = () => {
         <div className="tx-mini-card">
           <span className="tx-meta">BANK BALANCE</span>
           <span className="tx-category">₹{formatCurrency(bankBalance)}</span>
+        </div>
+      </div>
+      <div className="txs-controls" style={{ marginBottom: "24px" }}>
+        <div className="tx-mini-card">
+          <span className="tx-meta">LOANS GIVEN</span>
+          <span className="tx-category">
+            ₹{formatCurrency(loanSummary.lent)}
+          </span>
+        </div>
+
+        <div className="tx-mini-card">
+          <span className="tx-meta">BORROWED</span>
+          <span className="tx-category">
+            ₹{formatCurrency(loanSummary.borrowed)}
+          </span>
         </div>
       </div>
 

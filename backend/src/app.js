@@ -13,5 +13,6 @@ app.use(express.json());
 
 app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/transactions", require("./routes/transaction.routes"));
+app.use("/api/loans", require("./routes/loan.routes"));
 
 module.exports = app;

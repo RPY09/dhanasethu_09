@@ -35,6 +35,28 @@
   color: var(--bg-deep);
   opacity: 0.8;
 }
+/* Notification Bell */
+.zira-bell {
+  font-size: 1.4rem;
+  color: var(--bg-deep);
+  opacity: 0.85;
+}
+
+.zira-bell-badge {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 /* Bottom Floating Navigation */
 .zira-bottom-nav {

@@ -137,6 +137,45 @@ const Analytics = () => {
   );
 
   const balance = totalIncome - totalExpense - totalInvestment;
+  const loanStats = useMemo(() => {
+    let loanPrincipalReceived = 0;
+    let loanInterestReceived = 0;
+
+    let borrowPrincipalPaid = 0;
+    let borrowInterestPaid = 0;
+
+    filteredTransactions.forEach((t) => {
+      const mode = (t.paymentMode || "").toLowerCase();
+      const note = (t.note || "").toLowerCase();
+      const amt = Number(t.amount || 0);
+
+      // LOAN GIVEN → you receive money
+      if (mode === "loan" && t.type === "income") {
+        if (note.includes("interest")) loanInterestReceived += amt;
+        else loanPrincipalReceived += amt;
+      }
+
+      // BORROWED → you pay money
+      if (mode === "borrow" && t.type === "expense") {
+        if (note.includes("interest")) borrowInterestPaid += amt;
+        else borrowPrincipalPaid += amt;
+      }
+    });
+
+    return {
+      loanPrincipalReceived,
+      loanInterestReceived,
+      loanTotalReceived: loanPrincipalReceived + loanInterestReceived,
+
+      borrowPrincipalPaid,
+      borrowInterestPaid,
+      borrowTotalPaid: borrowPrincipalPaid + borrowInterestPaid,
+    };
+  }, [filteredTransactions]);
+  const loanBorrowPieData = [
+    { name: "Loan Received", value: loanStats.loanTotalReceived },
+    { name: "Borrow Paid", value: loanStats.borrowTotalPaid },
+  ];
 
   // Payment type (Cash vs Online) — only expenses
   const paymentTypeData = useMemo(() => {
@@ -374,6 +413,33 @@ const Analytics = () => {
           <h3>₹{formatCurrency(balance)}</h3>
         </div>
       </div>
+      {/* LOAN & BORROW ANALYTICS */}
+      <div className="analytics-stats-grid">
+        <div className="stat-card">
+          <span>Loan Principal Received</span>
+          <h3>₹{formatCurrency(loanStats.loanPrincipalReceived)}</h3>
+        </div>
+
+        <div className="stat-card">
+          <span>Loan Interest Earned</span>
+          <h3>₹{formatCurrency(loanStats.loanInterestReceived)}</h3>
+        </div>
+
+        <div className="stat-card">
+          <span>Total Borrow Repaid</span>
+          <h3>₹{formatCurrency(loanStats.borrowTotalPaid)}</h3>
+        </div>
+
+        <div className="stat-card primary-card">
+          <span>Net Loan Gain</span>
+          <h3>
+            ₹
+            {formatCurrency(
+              loanStats.loanTotalReceived - loanStats.borrowTotalPaid
+            )}
+          </h3>
+        </div>
+      </div>
 
       {/* MAIN BAR CHART */}
       <motion.div
@@ -482,6 +548,25 @@ const Analytics = () => {
               >
                 {investmentCategoryData.map((_, i) => (
                   <Cell key={i} fill={COLORS[(i + 3) % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="chart-card">
+          <h3>Loan vs Borrow Flow</h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <PieChart>
+              <Pie
+                data={loanBorrowPieData}
+                outerRadius={80}
+                dataKey="value"
+                label
+              >
+                {loanBorrowPieData.map((_, i) => (
+                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}
               </Pie>
               <Tooltip />
