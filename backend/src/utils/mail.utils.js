@@ -19,7 +19,7 @@ const sendEmail = async ({ email, subject, html }) => {
           "Content-Type": "application/json",
           accept: "application/json",
         },
-        timeout: 10000, // safety
+        timeout: 10000,
       }
     );
 
