@@ -12,7 +12,7 @@ const parseDate = (d) => {
 };
 const parseAmount = (v) => {
   if (v == null) return 0;
-  // remove commas and non-numeric chars (except dot and minus)
+
   const n = Number(String(v).replace(/[^0-9.-]/g, ""));
   return Number.isFinite(n) ? n : 0;
 };
@@ -247,7 +247,7 @@ const Transactions = () => {
                   {t.note || t.notes || t.description ? (
                     <div
                       className="note"
-                      style={{ marginTop: 8, width: 155, fontSize: 13 }}
+                      style={{ marginTop: 8, fontSize: 13 }}
                     >
                       {t.note || t.notes || t.description}
                     </div>

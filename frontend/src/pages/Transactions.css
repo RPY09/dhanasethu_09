@@ -130,6 +130,7 @@
   display: block;
   font-weight: 700;
   font-size: 15px;
+  text-transform: capitalize;
 }
 
 .tx-meta {
@@ -140,7 +141,10 @@
 .tx-card-right {
   text-align: right;
 }
-
+.tx-info {
+  width: 820px;
+  border-right: 1px solid var(--accent);
+}
 .tx-amount {
   display: block;
   font-weight: 800;
@@ -157,7 +161,10 @@
 
 .tx-actions {
   display: flex;
+  justify-content: center;
   gap: 8px;
+  align-items: center;
+  padding-left: 7px;
 }
 
 .tx-actions button {
@@ -181,4 +188,10 @@
   font-size: 13px;
   color: var(--accent);
   font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .tx-info {
+    width: 150px;
+  }
 }

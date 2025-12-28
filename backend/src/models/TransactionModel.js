@@ -33,7 +33,7 @@ function isEncryptedBlob(str) {
   const parts = str.split(":");
   if (parts.length < 2) return false;
   const iv = parts.shift();
-  const cipher = parts.join(":"); // allow colon(s) in cipher just in case
+  const cipher = parts.join(":");
   // iv must be exactly 32 hex chars (16 bytes)
   if (!/^[0-9a-fA-F]{32}$/.test(iv)) return false;
   if (!/^[0-9a-fA-F]+$/.test(cipher)) return false;

@@ -148,24 +148,21 @@
   justify-content: space-around;
   padding: 0 10px;
   box-shadow: 0 15px 35px rgba(16, 35, 42, 0.3);
-  z-index: 9999; /* Ensure it is above all other elements */
+  z-index: 9999;
 
-  /* Critical for mobile: prevents the bar from shifting when keyboard or scroll happens */
   transform: translateZ(0);
   backface-visibility: hidden;
 }
 
-/* Fix global body settings to prevent horizontal and unwanted vertical shifting */
 body {
   margin: 0;
   padding: 0;
-  padding-bottom: 110px; /* Room for the nav bar (70px height + 20px bottom + padding) */
+  padding-bottom: 110px;
   width: 100vw;
   overflow-x: hidden;
-  overscroll-behavior-y: none; /* Prevents pull-to-refresh bounce from moving the nav */
+  overscroll-behavior-y: none;
 }
 
-/* Responsive adjustments */
 @media (min-width: 768px) {
   .zira-bottom-nav {
     width: 400px;

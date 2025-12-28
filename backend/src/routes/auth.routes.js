@@ -1,15 +1,17 @@
 const express = require("express");
 const router = express.Router();
 const {
+  refreshToken,
   register,
   login,
   updateProfile,
   requestPasswordOtp,
   resetPasswordOtp,
-  forgotPasswordRequest, // New
-  loginViaOtp, // New
+  forgotPasswordRequest,
+  loginViaOtp,
 } = require("../controllers/authController");
 const protect = require("../middlewares/authMiddleware");
+router.get("/refresh-token", protect, refreshToken);
 
 router.post("/register", register);
 router.post("/login", login);

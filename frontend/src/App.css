@@ -1,23 +1,21 @@
-/* Lock the viewport and stop side-to-side shifting */
 html,
 body {
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%;
-  overflow-x: hidden; /* Critical: Stops left-right scroll */
-  position: fixed; /* Prevents "rubber-banding" on iOS */
-  background-color: #f4f1ee; /* Use your --bg-soft color */
+  overflow-x: hidden;
+  position: fixed;
+  background-color: #f4f1ee;
 }
 
 #root {
   height: 100%;
   width: 100%;
-  overflow-y: auto; /* Allows vertical scroll only within the app */
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
 
-/* Ensure boxes don't grow larger than 100% when padding is added */
 * {
   box-sizing: border-box;
 }

@@ -3,7 +3,7 @@ import {
   loginUser,
   loginViaOtp,
   forgotPasswordRequest,
-} from "../../api/auth.api"; // Updated imports
+} from "../../api/auth.api";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import "./Auth.css";
@@ -23,7 +23,7 @@ const Login = () => {
     if (!form.email) return alert("Please enter your email first");
     try {
       setLoading(true);
-      await forgotPasswordRequest({ email: form.email }); // Using helper
+      await forgotPasswordRequest({ email: form.email });
       setOtpSent(true);
       alert("OTP sent to your email");
     } catch (error) {

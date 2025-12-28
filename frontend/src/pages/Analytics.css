@@ -79,7 +79,7 @@ select {
 /* Grid Stats */
 .analytics-stats-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr); /* 2x2 grid for mobile */
+  grid-template-columns: repeat(2, 1fr);
   gap: 12px;
   margin-bottom: 24px;
 }
@@ -89,8 +89,12 @@ select {
   padding: 16px;
   border-radius: var(--radius-md);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+  border: 1px solid rgba(181, 136, 99, 0.1);
+  transition: transform 0.2s ease;
 }
-
+.stat-card:active {
+  transform: scale(0.98);
+}
 .stat-card span {
   font-size: 10px;
   font-weight: 700;
@@ -107,7 +111,7 @@ select {
 .primary-card {
   background: var(--primary);
   color: white;
-  grid-column: span 2; /* Full width balance card */
+  grid-column: span 2;
 }
 .headerselect {
   display: flex;
@@ -117,9 +121,14 @@ select {
   background: var(--card-bg);
   padding: 20px;
   border-radius: var(--radius-lg);
-  margin-bottom: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  margin-bottom: 24px;
+  overflow-x: auto;
 }
 
+.recharts-responsive-container {
+  min-width: 350px;
+}
 .chart-card h3 {
   font-size: 14px;
   font-weight: 700;

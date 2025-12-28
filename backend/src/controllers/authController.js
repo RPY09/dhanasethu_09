@@ -1,12 +1,14 @@
 const User = require("../models/UserModel");
 const Otp = require("../models/OtpModel");
 const sendEmail = require("../utils/mail.utils");
+const { otpEmailTemplate } = require("../utils/emailTemplate");
+
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 exports.register = async (req, res) => {
   try {
-    console.log("REGISTER BODY:", req.body); // 👈 ADD
+    console.log("REGISTER BODY:", req.body);
 
     const { name, email, number, password } = req.body;
 
@@ -42,17 +44,17 @@ exports.register = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("REGISTER ERROR:", err); // 👈 VERY IMPORTANT
+    console.error("REGISTER ERROR:", err);
     res.status(500).json({
       message: "Registration failed",
-      error: err.message, // 👈 send error message
+      error: err.message,
     });
   }
 };
 
 exports.login = async (req, res) => {
   try {
-    console.log("LOGIN BODY:", req.body); // 👈 ADD
+    console.log("LOGIN BODY:", req.body);
 
     const { email, password } = req.body;
 
@@ -83,7 +85,7 @@ exports.login = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("LOGIN ERROR:", err); // 👈 ADD
+    console.error("LOGIN ERROR:", err);
     res.status(500).json({ message: "Login failed" });
   }
 };
@@ -102,20 +104,21 @@ exports.updateProfile = async (req, res) => {
   }
 };
 
-// REQUEST OTP
 exports.requestPasswordOtp = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Store OTP in DB
     await Otp.create({ email: user.email, otp });
 
-    // Send Mail
     await sendEmail({
       email: user.email,
-      subject: "DhanaSethu Password Reset OTP",
-      message: `Your OTP for password reset is: ${otp}. This is valid for 10 minutes.`,
+      subject: "DhanaSethu OTP Verification",
+      html: otpEmailTemplate({
+        name: user.name,
+        otp,
+        purpose: "Password Reset Verification",
+      }),
     });
 
     res.json({ message: "OTP sent to registered email" });
@@ -124,7 +127,6 @@ exports.requestPasswordOtp = async (req, res) => {
   }
 };
 
-// RESET PASSWORD WITH OTP
 exports.resetPasswordOtp = async (req, res) => {
   try {
     const { otp, newPassword } = req.body;
@@ -136,12 +138,10 @@ exports.resetPasswordOtp = async (req, res) => {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
-    // Hash new password
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(newPassword, salt);
     await user.save();
 
-    // Delete used OTP
     await Otp.deleteOne({ _id: otpRecord._id });
 
     res.json({ message: "Password updated successfully" });
@@ -149,9 +149,7 @@ exports.resetPasswordOtp = async (req, res) => {
     res.status(500).json({ message: "Password reset failed" });
   }
 };
-// Add these to authController.js
 
-// SEND OTP for Forgot Password (Public)
 exports.forgotPasswordRequest = async (req, res) => {
   try {
     const { email } = req.body;
@@ -168,9 +166,13 @@ exports.forgotPasswordRequest = async (req, res) => {
 
     // Send OTP via email
     await sendEmail({
-      email,
-      subject: "DhanaSethu Login OTP",
-      message: `Your OTP for login is: ${otp}. It will expire in 10 minutes.`,
+      email: user.email,
+      subject: "DhanaSethu OTP Verification",
+      html: otpEmailTemplate({
+        name: user.name,
+        otp,
+        purpose: "Password Reset Verification",
+      }),
     });
 
     res.json({ message: "OTP sent to your email" });
@@ -179,7 +181,6 @@ exports.forgotPasswordRequest = async (req, res) => {
   }
 };
 
-// LOGIN via OTP (Public)
 exports.loginViaOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
@@ -213,5 +214,16 @@ exports.loginViaOtp = async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ message: "Login failed" });
+  }
+};
+exports.refreshToken = async (req, res) => {
+  try {
+    const token = jwt.sign({ id: req.user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+
+    res.json({ token });
+  } catch (err) {
+    res.status(500).json({ message: "Token refresh failed" });
   }
 };

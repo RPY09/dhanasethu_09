@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { getLoans, settleLoan, deleteLoan } from "../api/loan.api";
@@ -8,23 +8,24 @@ const ITEMS_PER_PAGE = 5;
 
 const Notifications = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [loans, setLoans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showSettleModal, setShowSettleModal] = useState(false);
   const [selectedLoan, setSelectedLoan] = useState(null);
   const [paidAmount, setPaidAmount] = useState("");
-  const [page, setPage] = useState(1);
-  const location = useLocation();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [activeTab, setActiveTab] = useState(
     location.state?.activeTab || "lent"
   );
+  const [paymentType, setPaymentType] = useState("full");
 
   useEffect(() => {
-    if (location.state?.activeTab) {
-      setActiveTab(location.state.activeTab);
-    }
-  }, [location.state]);
+    const handler = setTimeout(() => setDebouncedSearch(searchTerm), 500);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
   useEffect(() => {
     fetchLoans();
@@ -41,83 +42,135 @@ const Notifications = () => {
     }
   };
 
-  /* ---------- DATE HELPERS ---------- */
-  const getDiffDays = (dueDate) => {
+  /* ---------- HELPER CALCULATIONS ---------- */
+  const getTimeRemaining = (dueDate) => {
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
     const end = new Date(dueDate);
-    end.setHours(0, 0, 0, 0);
-    return Math.ceil((end - today) / (1000 * 60 * 60 * 24));
+    const diffDays = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
+    if (diffDays < 0)
+      return { label: `${Math.abs(diffDays)}d overdue`, color: "overdue" };
+    if (diffDays === 0) return { label: "Ends today", color: "today" };
+    return { label: `${diffDays} days left`, color: "soon" };
   };
 
-  const getDueLabel = (dueDate) => {
-    const diff = getDiffDays(dueDate);
-    if (diff < 0)
-      return { text: `Overdue ${Math.abs(diff)}d`, type: "overdue" };
-    if (diff === 0) return { text: "Due today", type: "today" };
-    return { text: `Due in ${diff}d`, type: "soon" };
-  };
-
-  const getUrgencyScore = (dueDate) => {
-    const diff = getDiffDays(dueDate);
-    if (diff < 0) return 1000 + Math.abs(diff);
-    if (diff === 0) return 500;
-    return 100 - diff;
-  };
-
-  const visibleLoans = loans.filter((loan) =>
-    activeTab === "lent"
-      ? loan.role === "lent" && !loan.settled
-      : loan.role === "borrowed" && !loan.settled
-  );
-
-  const sortedLoans = [...visibleLoans].sort(
-    (a, b) => getUrgencyScore(b.dueDate) - getUrgencyScore(a.dueDate)
-  );
-  const totalPages = Math.ceil(sortedLoans.length / ITEMS_PER_PAGE);
-  const paginatedLoans = sortedLoans.slice(
-    (page - 1) * ITEMS_PER_PAGE,
-    page * ITEMS_PER_PAGE
-  );
-
-  useEffect(() => {
-    setPage(1);
-  }, [activeTab]);
-
-  const sendWhatsApp = (loan) => {
-    const phone = (loan.contact || "").replace(/\D/g, "");
-    if (phone.length < 10) return alert("Invalid phone number");
-    const msg = `Hi ${loan.person}, reminder for ₹${loan.totalAmount}. Thank you.`;
-    window.open(
-      `https://wa.me/91${phone}?text=${encodeURIComponent(msg.trim())}`,
-      "_blank"
+  const getRemainingInterest = (loan) =>
+    Math.max(Number(loan.interestAmount) - Number(loan.interestPaid || 0), 0);
+  const getMonthlyInterest = (loan) => {
+    const remaining = getRemainingInterest(loan);
+    if (remaining <= 0) return 0;
+    const months =
+      (new Date(loan.dueDate).getFullYear() -
+        new Date(loan.startDate).getFullYear()) *
+        12 +
+        (new Date(loan.dueDate).getMonth() -
+          new Date(loan.startDate).getMonth()) || 1;
+    return Math.min(
+      Math.round(Number(loan.interestAmount) / months),
+      remaining
     );
   };
+  const getRemainingPrincipal = (loan) =>
+    Math.max(Number(loan.principal || 0), 0);
 
-  const openSettleModal = (loan) => {
-    setSelectedLoan(loan);
-    setPaidAmount(loan.totalAmount);
-    setShowSettleModal(true);
+  const getRemainingTotal = (loan) =>
+    Number(loan.principal || 0) + getRemainingInterest(loan);
+
+  const filteredLoans = useMemo(
+    () =>
+      loans.filter((loan) => {
+        const matchesTab =
+          activeTab === "lent"
+            ? loan.role === "lent"
+            : loan.role === "borrowed";
+        return (
+          matchesTab &&
+          !loan.settled &&
+          loan.person.toLowerCase().includes(debouncedSearch.toLowerCase())
+        );
+      }),
+    [loans, activeTab, debouncedSearch]
+  );
+
+  /* ---------- ACTIONS ---------- */
+  useEffect(() => {
+    if (!selectedLoan) return;
+    if (paymentType === "interest")
+      setPaidAmount(getMonthlyInterest(selectedLoan));
+    else if (paymentType === "principal")
+      setPaidAmount(getRemainingPrincipal(selectedLoan));
+    else setPaidAmount(getRemainingTotal(selectedLoan));
+  }, [paymentType, selectedLoan]);
+
+  const handleInterestChange = (e) => {
+    const valString = e.target.value;
+
+    // Allow backspacing completely (empty string)
+    if (valString === "") {
+      setPaidAmount("");
+      return;
+    }
+
+    const val = Number(valString);
+    const maxInt = getRemainingInterest(selectedLoan);
+
+    // Enforce max limit: if typed > max, reset to max
+    if (val > maxInt) {
+      setPaidAmount(maxInt);
+    } else {
+      setPaidAmount(val);
+    }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this loan?")) return;
-    await deleteLoan(id);
-    window.dispatchEvent(new Event("loans:changed"));
-    fetchLoans();
+  const handlePrincipalChange = (e) => {
+    const valStr = e.target.value;
+
+    if (valStr === "") {
+      setPaidAmount("");
+      return;
+    }
+
+    const val = Number(valStr);
+    const max = getRemainingPrincipal(selectedLoan);
+
+    if (val < 0) return;
+
+    setPaidAmount(Math.min(val, max));
+  };
+
+  const sendWhatsAppToLender = (loan, amount, type) => {
+    if (loan.role !== "borrowed") return;
+    if (!loan.contact) return;
+
+    let message = "";
+
+    if (type === "interest") {
+      message = `Hello ${loan.person}, I have paid ₹${amount} towards interest for the loan.`;
+    } else if (type === "principal") {
+      message = `Hello ${loan.person}, I have repaid ₹${amount} towards the principal amount.`;
+    } else {
+      message = `Hello ${loan.person}, I have fully settled the loan. Thank you.`;
+    }
+
+    const encoded = encodeURIComponent(message);
+    window.open(`https://wa.me/91${loan.contact}?text=${encoded}`, "_blank");
   };
 
   const confirmSettle = async () => {
-    if (!paidAmount || Number(paidAmount) <= 0)
-      return alert("Enter valid amount");
     try {
-      await settleLoan(selectedLoan._id, { paidAmount });
-      window.dispatchEvent(new Event("loans:changed"));
-      window.dispatchEvent(new Event("transactions:changed"));
+      await settleLoan(selectedLoan._id, {
+        paidAmount,
+        paymentType,
+      });
+
+      sendWhatsAppToLender(selectedLoan, paidAmount, paymentType);
+
       setShowSettleModal(false);
       fetchLoans();
+
+      window.dispatchEvent(new Event("transactions:changed"));
+      window.dispatchEvent(new Event("loans:changed"));
     } catch (err) {
-      alert("Failed to settle loan");
+      alert("Settlement failed");
     }
   };
 
@@ -129,97 +182,63 @@ const Notifications = () => {
     >
       <header className="notify-header">
         <h2>Reminders</h2>
-        <p>Manage your pending dues</p>
+        <p>Your pending financial commitments</p>
       </header>
+
+      <div className="search-container">
+        <i className="bi bi-search"></i>
+        <input
+          type="text"
+          placeholder="Search name..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
 
       <div className="notify-tabs">
         <button
           className={activeTab === "lent" ? "active" : ""}
           onClick={() => setActiveTab("lent")}
         >
-          Loans
+          Lent
         </button>
         <button
           className={activeTab === "borrowed" ? "active" : ""}
           onClick={() => setActiveTab("borrowed")}
         >
-          Borrowings
+          Borrowed
         </button>
       </div>
 
       <div className="notify-list">
         {loading ? (
-          <div className="loader-box">
-            <div className="spinner"></div>
-          </div>
-        ) : paginatedLoans.length === 0 ? (
-          <p className="empty">No pending {activeTab} records found</p>
+          <div className="spinner"></div>
         ) : (
-          paginatedLoans.map((loan) => {
-            const due = getDueLabel(loan.dueDate);
+          filteredLoans.map((loan) => {
+            const time = getTimeRemaining(loan.dueDate);
             return (
-              <motion.div
-                key={loan._id}
-                className="notify-card"
-                initial={{ y: 10, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-              >
+              <div key={loan._id} className="notify-card">
                 <div className="card-info">
                   <span className="person-name">{loan.person}</span>
-                  <span className="amount-text">₹{loan.totalAmount}</span>
-                  <span className={`due-badge ${due.type}`}>{due.text}</span>
+                  <span className="amount-text">
+                    ₹{getRemainingTotal(loan)}
+                  </span>
+                  <span className={`time-tag ${time.color}`}>{time.label}</span>
                 </div>
-
-                <div className="card-actions">
-                  {loan.role === "lent" && (
-                    <button
-                      className="icon-btn whatsapp"
-                      onClick={() => sendWhatsApp(loan)}
-                    >
-                      <i className="bi bi-whatsapp"></i>
-                    </button>
-                  )}
-                  <button
-                    className="icon-btn edit"
-                    onClick={() => navigate(`/edit/${loan._id}`)}
-                  >
-                    <i className="bi bi-pencil-square"></i>
-                  </button>
-                  <button
-                    className="icon-btn delete"
-                    onClick={() => handleDelete(loan._id)}
-                  >
-                    <i className="bi bi-trash3"></i>
-                  </button>
-                  <button
-                    className="icon-btn settle"
-                    onClick={() => openSettleModal(loan)}
-                  >
-                    <i className="bi bi-check-circle-fill"></i>
-                  </button>
-                </div>
-              </motion.div>
+                <button
+                  className="manage-btn"
+                  onClick={() => {
+                    setSelectedLoan(loan);
+                    setShowSettleModal(true);
+                  }}
+                >
+                  Manage
+                </button>
+              </div>
             );
           })
         )}
       </div>
-
-      {totalPages > 1 && (
-        <div className="pagination">
-          <button disabled={page === 1} onClick={() => setPage(page - 1)}>
-            <i className="bi bi-chevron-left"></i>
-          </button>
-          <span>
-            {page} / {totalPages}
-          </span>
-          <button
-            disabled={page === totalPages}
-            onClick={() => setPage(page + 1)}
-          >
-            <i className="bi bi-chevron-right"></i>
-          </button>
-        </div>
-      )}
 
       <AnimatePresence>
         {showSettleModal && selectedLoan && (
@@ -231,32 +250,150 @@ const Notifications = () => {
           >
             <motion.div
               className="settle-modal"
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
             >
-              <h3>Settle Loan</h3>
-              <p>
-                Confirming payment for <strong>{selectedLoan.person}</strong>
-              </p>
+              <div className="modal-top">
+                <h3>{selectedLoan.person}</h3>
+                <div className="quick-actions">
+                  {selectedLoan.role === "lent" && (
+                    <button
+                      className="q-icon wa"
+                      onClick={() =>
+                        window.open(`https://wa.me/91${selectedLoan.contact}`)
+                      }
+                    >
+                      <i className="bi bi-whatsapp"></i>
+                    </button>
+                  )}
+                  <button
+                    className="q-icon edit"
+                    onClick={() => navigate(`/edit/${selectedLoan._id}`)}
+                  >
+                    <i className="bi bi-pencil"></i>
+                  </button>
+                  <button
+                    className="q-icon del"
+                    onClick={async () => {
+                      if (confirm("Delete?"))
+                        await deleteLoan(selectedLoan._id);
+                      fetchLoans();
+                      setShowSettleModal(false);
+                    }}
+                  >
+                    <i className="bi bi-trash"></i>
+                  </button>
+                </div>
+              </div>
 
-              <div className="input-field-group">
-                <label>Amount Paid (₹)</label>
-                <input
-                  type="number"
-                  value={paidAmount}
-                  onChange={(e) => setPaidAmount(e.target.value)}
-                />
+              <div className="payment-options">
+                <label
+                  className={`option-card ${paymentType === "interest" ? "active" : ""} ${getRemainingInterest(selectedLoan) <= 0 ? "disabled" : ""}`}
+                >
+                  <input
+                    type="radio"
+                    name="pType"
+                    value="interest"
+                    disabled={getRemainingInterest(selectedLoan) <= 0}
+                    onChange={(e) => {
+                      setPaymentType(e.target.value);
+                      setPaidAmount(getMonthlyInterest(selectedLoan)); // Initialize with monthly amount
+                    }}
+                  />
+                  <div className="opt-label">
+                    <span>Interest Amount</span>
+                    {paymentType === "interest" ? (
+                      <div className="edit-container">
+                        <input
+                          type="number"
+                          className="inline-edit"
+                          value={paidAmount}
+                          onChange={handleInterestChange}
+                          onFocus={(e) => e.target.select()} // Highlights text on click for easy backspace
+                          autoFocus
+                        />
+                        <i className="bi bi-pencil-fill edit-hint-icon"></i>
+                      </div>
+                    ) : (
+                      <strong
+                        className="clickable-hint"
+                        onClick={() => {
+                          setPaymentType("interest");
+                          setPaidAmount(getMonthlyInterest(selectedLoan));
+                        }}
+                      >
+                        ₹{getMonthlyInterest(selectedLoan)}
+                      </strong>
+                    )}
+                  </div>
+                </label>
+                <label
+                  className={`option-card ${paymentType === "principal" ? "active" : ""}`}
+                >
+                  <input
+                    type="radio"
+                    name="pType"
+                    value="principal"
+                    onChange={() => {
+                      setPaymentType("principal");
+                      setPaidAmount(getRemainingPrincipal(selectedLoan));
+                    }}
+                  />
+
+                  <div className="opt-label">
+                    <span>Principal Amount</span>
+
+                    {paymentType === "principal" ? (
+                      <div className="edit-container">
+                        <input
+                          type="number"
+                          className="inline-edit"
+                          value={paidAmount}
+                          onChange={handlePrincipalChange}
+                          onFocus={(e) => e.target.select()}
+                          autoFocus
+                        />
+                        <i className="bi bi-pencil-fill edit-hint-icon"></i>
+                      </div>
+                    ) : (
+                      <strong
+                        className="clickable-hint"
+                        onClick={() => {
+                          setPaymentType("principal");
+                          setPaidAmount(getRemainingPrincipal(selectedLoan));
+                        }}
+                      >
+                        ₹{getRemainingPrincipal(selectedLoan)}
+                      </strong>
+                    )}
+                  </div>
+                </label>
+
+                <label
+                  className={`option-card ${paymentType === "full" ? "active" : ""}`}
+                >
+                  <input
+                    type="radio"
+                    name="pType"
+                    value="full"
+                    onChange={(e) => setPaymentType(e.target.value)}
+                  />
+                  <div className="opt-label">
+                    <span>Full Settlement</span>
+                    <strong>₹{getRemainingTotal(selectedLoan)}</strong>
+                  </div>
+                </label>
               </div>
 
               <div className="modal-footer">
                 <button
-                  className="cancel-link"
+                  className="btn-secondary"
                   onClick={() => setShowSettleModal(false)}
                 >
-                  Cancel
+                  Back
                 </button>
-                <button className="confirm-btn" onClick={confirmSettle}>
-                  Confirm Settlement
+                <button className="btn-primary" onClick={confirmSettle}>
+                  Confirm Paid
                 </button>
               </div>
             </motion.div>

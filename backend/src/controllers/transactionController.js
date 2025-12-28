@@ -3,7 +3,7 @@ const Loan = require("../models/LoanModel");
 
 exports.addTransaction = async (req, res) => {
   try {
-    console.log("USER:", req.user); // 👈 ADD THIS
+    console.log("USER:", req.user);
 
     const transaction = await Transaction.create({
       ...req.body,
@@ -40,10 +40,8 @@ exports.updateTransaction = async (req, res) => {
       return res.status(404).json({ message: "Transaction not found" });
     }
 
-    // Merge new data into existing document
     Object.assign(transaction, req.body);
 
-    // .save() triggers the encryption middleware
     await transaction.save();
 
     res.json(transaction);
@@ -62,7 +60,6 @@ exports.deleteTransaction = async (req, res) => {
     if (!transaction)
       return res.status(404).json({ message: "Transaction not found" });
 
-    // ✅ If it belongs to a loan, delete the loan too
     if (transaction.loanId) {
       await Loan.findOneAndDelete({
         _id: transaction.loanId,

@@ -8,7 +8,7 @@ const Loans = () => {
   const navigate = useNavigate();
   const [form, setForm] = useState({
     person: "",
-    contact: "", // Now mandatory phone number
+    contact: "",
     role: "lent",
     amount: "",
     interestRate: "",
@@ -35,12 +35,35 @@ const Loans = () => {
   const interestAmount = useMemo(() => {
     const p = Number(form.amount);
     const r = Number(form.interestRate);
+
     if (!p || !r || !form.startDate || !form.endDate) return 0;
+
     const months = calculateMonths(form.startDate, form.endDate);
-    if (form.interestType === "simple")
-      return Math.round((p * r * months) / 100);
-    if (form.interestType === "monthly")
-      return Math.round(p * Math.pow(1 + r / 100, months) - p);
+
+    // -------- SIMPLE INTEREST --------
+    if (form.interestType === "simple") {
+      if (months >= 12) {
+        // Yearly simple interest
+        const years = months / 12;
+        return Math.round((p * r * years) / 100);
+      } else {
+        // Monthly simple interest
+        return Math.round((p * r * months) / 100);
+      }
+    }
+
+    // -------- COMPOUND (MONTHLY OPTION) --------
+    if (form.interestType === "monthly") {
+      if (months >= 12) {
+        // Yearly compounding
+        const years = months / 12;
+        return Math.round(p * Math.pow(1 + r / 100, years) - p);
+      } else {
+        // Monthly compounding
+        return Math.round(p * Math.pow(1 + r / 100, months) - p);
+      }
+    }
+
     return 0;
   }, [
     form.amount,
@@ -70,7 +93,6 @@ const Loans = () => {
       window.dispatchEvent(new Event("loans:changed"));
       window.dispatchEvent(new Event("transactions:changed"));
 
-      // Redirect logic: pass the tab name to Notifications.jsx via state
       const targetTab = form.role === "borrowed" ? "borrowed" : "lent";
       navigate("/notifications", { state: { activeTab: targetTab } });
     } catch (err) {

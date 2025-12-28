@@ -15,7 +15,6 @@ import {
 } from "recharts";
 import "./Analytics.css";
 
-// Uniform Color Palette from your image
 const COLORS = [
   "#10232A",
   "#B58863",
@@ -50,10 +49,11 @@ const isInvestment = (t) => {
 
 const Analytics = () => {
   const [transactions, setTransactions] = useState([]);
-  const [range, setRange] = useState("month"); // "week" | "month" | "year"
+  const [range, setRange] = useState("month");
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [paymentFilter, setPaymentFilter] = useState("income");
+  const [loanViewMode, setLoanViewMode] = useState("principal"); // "principal" | "interest"
 
   useEffect(() => {
     fetchTransactions();
@@ -62,15 +62,13 @@ const Analytics = () => {
   const fetchTransactions = async () => {
     try {
       const res = await getTransactions();
-
       const cleanedData = (Array.isArray(res) ? res : []).map((t) => ({
         ...t,
         amount: Number(t.amount) || 0,
       }));
-
       setTransactions(cleanedData);
     } catch (err) {
-      console.error("Failed to fetch transactions", err);
+      console.error(err);
     }
   };
 
@@ -140,7 +138,6 @@ const Analytics = () => {
   const loanStats = useMemo(() => {
     let loanPrincipalReceived = 0;
     let loanInterestReceived = 0;
-
     let borrowPrincipalPaid = 0;
     let borrowInterestPaid = 0;
 
@@ -149,13 +146,13 @@ const Analytics = () => {
       const note = (t.note || "").toLowerCase();
       const amt = Number(t.amount || 0);
 
-      // LOAN GIVEN → you receive money
+      // LENT MONEY (Income coming back to you)
       if (mode === "loan" && t.type === "income") {
         if (note.includes("interest")) loanInterestReceived += amt;
         else loanPrincipalReceived += amt;
       }
 
-      // BORROWED → you pay money
+      // BORROWED MONEY (Expense you are paying back)
       if (mode === "borrow" && t.type === "expense") {
         if (note.includes("interest")) borrowInterestPaid += amt;
         else borrowPrincipalPaid += amt;
@@ -165,13 +162,23 @@ const Analytics = () => {
     return {
       loanPrincipalReceived,
       loanInterestReceived,
-      loanTotalReceived: loanPrincipalReceived + loanInterestReceived,
-
       borrowPrincipalPaid,
       borrowInterestPaid,
-      borrowTotalPaid: borrowPrincipalPaid + borrowInterestPaid,
     };
   }, [filteredTransactions]);
+
+  const loanPieData = useMemo(() => {
+    if (loanViewMode === "interest") {
+      return [
+        { name: "Interest Profit", value: loanStats.loanInterestReceived },
+        { name: "Interest Loss", value: loanStats.borrowInterestPaid },
+      ];
+    }
+    return [
+      { name: "Principal Received", value: loanStats.loanPrincipalReceived },
+      { name: "Principal Paid", value: loanStats.borrowPrincipalPaid },
+    ];
+  }, [loanStats, loanViewMode]);
   const loanBorrowPieData = [
     { name: "Loan Received", value: loanStats.loanTotalReceived },
     { name: "Borrow Paid", value: loanStats.borrowTotalPaid },
@@ -207,7 +214,11 @@ const Analytics = () => {
   const categoryChartData = useMemo(() => {
     const expenseByCategory = {};
     filteredTransactions
-      .filter((t) => t.type === "expense")
+      .filter(
+        (t) =>
+          t.type === "expense" &&
+          !["loan", "borrow"].includes((t.paymentMode || "").toLowerCase()) // Added filter
+      )
       .forEach((t) => {
         const cat = t.category || "Uncategorized";
         expenseByCategory[cat] =
@@ -234,6 +245,18 @@ const Analytics = () => {
       value: investByCategory[cat],
     }));
   }, [filteredTransactions]);
+  const loanProfitLossData = useMemo(() => {
+    if (loanViewMode === "interest") {
+      return [
+        { name: "Profit (Earned)", value: loanStats.loanInterestReceived },
+        { name: "Loss (Paid)", value: loanStats.borrowInterestPaid },
+      ];
+    }
+    return [
+      { name: "Principal Lent", value: loanStats.loanPrincipalReceived },
+      { name: "Principal Borrowed", value: loanStats.borrowPrincipalPaid },
+    ];
+  }, [loanStats, loanViewMode]);
 
   // YEAR VIEW: monthly summaries (compute investments per month)
   const monthlySummaries = useMemo(() => {
@@ -454,7 +477,20 @@ const Analytics = () => {
               data={barData}
               margin={{ top: 20, right: 30, left: 0, bottom: 0 }}
             >
-              <XAxis dataKey="name" axisLine={false} tickLine={false} />
+              <XAxis
+                dataKey="name"
+                axisLine={false}
+                tickLine={false}
+                tick={{
+                  fill: "#a79e9c",
+                  fontSize: 10,
+                  fontWeight: 600,
+                }}
+                interval={0}
+                angle={-45}
+                textAnchor="end"
+                height={60}
+              />
               <YAxis axisLine={false} tickLine={false} />
               <Tooltip
                 cursor={{ fill: "#f0f0f0" }}
@@ -556,23 +592,87 @@ const Analytics = () => {
           </ResponsiveContainer>
         </div>
         <div className="chart-card">
-          <h3>Loan vs Borrow Flow</h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <PieChart>
-              <Pie
-                data={loanBorrowPieData}
-                outerRadius={80}
-                dataKey="value"
-                label
+          <div
+            className="headerselect"
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "15px",
+            }}
+          >
+            <h3 style={{ margin: 0 }}>Loan Analysis</h3>
+            <select
+              value={loanViewMode}
+              onChange={(e) => setLoanViewMode(e.target.value)}
+              style={{ padding: "4px 8px", fontSize: "12px" }}
+            >
+              <option value="principal">Principal Flow</option>
+              <option value="interest">Profit & Loss (Interest)</option>
+            </select>
+          </div>
+
+          <div className="chart-wrapper">
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={loanPieData}
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {loanPieData.map((entry, i) => (
+                    <Cell
+                      key={i}
+                      fill={
+                        loanViewMode === "interest" &&
+                        entry.name === "Interest Loss"
+                          ? "#F87171"
+                          : COLORS[i % COLORS.length]
+                      }
+                    />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Dynamic Summary Text */}
+          {loanViewMode === "interest" && (
+            <div
+              style={{
+                textAlign: "center",
+                marginTop: "10px",
+                fontWeight: "800",
+              }}
+            >
+              Net{" "}
+              {loanStats.loanInterestReceived >= loanStats.borrowInterestPaid
+                ? "Profit"
+                : "Loss"}
+              :
+              <span
+                style={{
+                  color:
+                    loanStats.loanInterestReceived >=
+                    loanStats.borrowInterestPaid
+                      ? "#10B981"
+                      : "#EF4444",
+                }}
               >
-                {loanBorrowPieData.map((_, i) => (
-                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
+                ₹
+                {formatCurrency(
+                  Math.abs(
+                    loanStats.loanInterestReceived -
+                      loanStats.borrowInterestPaid
+                  )
+                )}
+              </span>
+            </div>
+          )}
         </div>
       </div>
 

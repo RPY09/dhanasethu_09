@@ -1,6 +1,6 @@
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useState } from "react";
-import { motion } from "framer-motion"; // Consistency with other pages
+import { motion } from "framer-motion";
 import { updateTransaction } from "../api/transaction.api";
 import "./AddTransaction.css";
 

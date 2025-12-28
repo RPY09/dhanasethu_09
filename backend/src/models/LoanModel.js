@@ -6,7 +6,7 @@ const loanSchema = new mongoose.Schema(
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 
     person: { type: String, required: true },
-    contact: { type: String }, // phone or email
+    contact: { type: String },
 
     role: {
       type: String,
@@ -14,15 +14,24 @@ const loanSchema = new mongoose.Schema(
       required: true,
     },
 
-    amount: { type: String, required: true }, // encrypted
-    interestRate: { type: String }, // encrypted
-    interestAmount: { type: String }, // encrypted
-    totalAmount: { type: String }, // encrypted
+    amount: { type: String, required: true }, // original principal (encrypted)
+    principal: { type: Number, required: true }, // remaining principal
 
+    interestRate: { type: String }, // encrypted
     interestType: {
       type: String,
       enum: ["simple", "monthly"],
       default: "simple",
+    },
+
+    interestAmount: { type: Number, required: true },
+    interestPaid: {
+      type: Number,
+      default: 0,
+    },
+    interestLastPaidOn: {
+      type: Date,
+      default: null,
     },
 
     startDate: { type: Date, required: true },
@@ -30,26 +39,19 @@ const loanSchema = new mongoose.Schema(
 
     settled: { type: Boolean, default: false },
 
-    lastReminderStage: {
-      type: String,
-      enum: ["none", "7days", "3days", "duedate"],
-      default: "none",
-    },
-
     note: { type: String },
   },
   { timestamps: true }
 );
 
-/* 🔐 ENCRYPT BEFORE SAVE */
+/* ENCRYPT BEFORE SAVE */
 loanSchema.pre("save", function () {
   const fields = [
     "person",
     "contact",
     "amount",
     "interestRate",
-    "interestAmount",
-    "totalAmount",
+    // "interestAmount",
     "note",
   ];
 
@@ -71,8 +73,7 @@ function decryptLoan(doc) {
     "contact",
     "amount",
     "interestRate",
-    "interestAmount",
-    "totalAmount",
+    // "interestAmount",
     "note",
   ].forEach((field) => {
     if (

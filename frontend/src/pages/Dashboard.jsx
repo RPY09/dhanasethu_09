@@ -38,7 +38,7 @@ const Dashboard = () => {
 
   const fetchTransactions = useCallback(async () => {
     try {
-      const data = await getTransactions(); // already pure data array
+      const data = await getTransactions();
 
       const sorted = (Array.isArray(data) ? data : [])
         .filter((t) => t?.date && !isNaN(Date.parse(t.date)))

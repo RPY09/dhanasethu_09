@@ -1,5 +1,4 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import "./Navbar.css";
 import { getLoans } from "../../api/loan.api";
@@ -27,17 +26,17 @@ const authNavItems = [
     type: "link",
   },
   {
-    key: "analytics",
-    to: "/analytics",
-    label: "Stats",
-    icon: "bi-pie-chart",
-    type: "link",
-  },
-  {
     key: "loan",
     to: "/loan",
     label: "Lend",
     icon: "bi-cash-coin",
+    type: "link",
+  },
+  {
+    key: "analytics",
+    to: "/analytics",
+    label: "Stats",
+    icon: "bi-pie-chart",
     type: "link",
   },
 ];
@@ -45,32 +44,55 @@ const authNavItems = [
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
+
   const [isAuthenticated, setIsAuthenticated] = useState(
     Boolean(localStorage.getItem("token"))
   );
-  const [notificationCount, setNotificationCount] = useState(0); // TEMP
+  const [notificationCount, setNotificationCount] = useState(0);
+
+  /* ---------------- HELPERS ---------------- */
+
+  const isNearOrOverdue = (dueDate) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const end = new Date(dueDate);
+    end.setHours(0, 0, 0, 0);
+
+    const diffDays = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
+    return diffDays <= 7;
+  };
+
+  const hasPendingAmount = (loan) => {
+    const principalPending = Number(loan.principal || 0) > 0;
+
+    const interestPending =
+      Number(loan.interestAmount || 0) - Number(loan.interestPaid || 0) > 0;
+
+    return principalPending || interestPending;
+  };
+
+  /* ---------------- AUTH WATCH ---------------- */
+
   useEffect(() => {
     setIsAuthenticated(Boolean(localStorage.getItem("token")));
   }, [location.pathname]);
+
+  /* ---------------- NOTIFICATION LOGIC ---------------- */
+
   useEffect(() => {
-    const isNearOrOverdue = (dueDate) => {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const end = new Date(dueDate);
-      end.setHours(0, 0, 0, 0);
-
-      const diffDays = Math.ceil((end - today) / (1000 * 60 * 60 * 24));
-
-      return diffDays <= 7;
-    };
+    if (!isAuthenticated) return;
 
     const fetchLoanNotifications = async () => {
       try {
         const loans = await getLoans();
 
         const count = loans.filter(
-          (l) => l.role === "lent" && !l.settled && isNearOrOverdue(l.dueDate)
+          (l) =>
+            l.role === "lent" &&
+            !l.settled &&
+            hasPendingAmount(l) &&
+            isNearOrOverdue(l.dueDate)
         ).length;
 
         setNotificationCount(count);
@@ -82,7 +104,6 @@ const Navbar = () => {
     fetchLoanNotifications();
 
     const handler = () => fetchLoanNotifications();
-
     window.addEventListener("loans:changed", handler);
 
     return () => {
@@ -90,40 +111,40 @@ const Navbar = () => {
     };
   }, [isAuthenticated]);
 
+  /* ---------------- LOGOUT ---------------- */
+
   const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    localStorage.clear();
     setIsAuthenticated(false);
     navigate("/login");
   };
 
   const isActive = (path) => location.pathname === path;
 
-  if (!isAuthenticated) return null; // Keep public pages clean or add a separate simple nav
+  if (!isAuthenticated) return null;
 
   return (
     <>
-      {/* Top Brand Header */}
+      {/* TOP NAV */}
       <header className="zira-top-nav">
         <div className="zira-logo" onClick={() => navigate("/dashboard")}>
           Dhana<span>Sethu</span>
         </div>
-        {/* Update this div to navigate to profile */}
+
         <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-          {/* Notification Bell */}
+          {/* 🔔 Notification Bell */}
           <div
             className="zira-bell"
             onClick={() => navigate("/notifications")}
             style={{ cursor: "pointer", position: "relative" }}
           >
             <i className="bi bi-bell"></i>
-
             {notificationCount > 0 && (
               <span className="zira-bell-badge">{notificationCount}</span>
             )}
           </div>
 
-          {/* Profile */}
+          {/* 👤 Profile */}
           <div
             className="zira-user-avatar"
             onClick={() => navigate("/profile")}
@@ -134,7 +155,7 @@ const Navbar = () => {
         </div>
       </header>
 
-      {/* Bottom Floating Navigation */}
+      {/* BOTTOM NAV */}
       <nav className="zira-bottom-nav">
         {authNavItems.map((it) =>
           it.type === "link" ? (
