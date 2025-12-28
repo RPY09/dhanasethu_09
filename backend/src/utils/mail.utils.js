@@ -7,7 +7,7 @@ const sendEmail = async ({ email, subject, html }) => {
       {
         sender: {
           name: "DhanaSethu",
-          email: "no-reply@dhanasethu.app",
+          email: "cleanstreet03@gmail.com",
         },
         to: [{ email }],
         subject,
