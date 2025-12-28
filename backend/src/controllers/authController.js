@@ -106,7 +106,7 @@ exports.updateProfile = async (req, res) => {
 
 exports.requestPasswordOtp = async (req, res) => {
   try {
-    const { email } = req.body;
+    const email = req.body?.email;
 
     if (!email) {
       return res.status(400).json({ message: "Email is required" });
@@ -117,11 +117,9 @@ exports.requestPasswordOtp = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // clear old OTPs
     await Otp.deleteMany({ email });
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
     await Otp.create({ email, otp });
 
     await sendEmail({
@@ -134,10 +132,10 @@ exports.requestPasswordOtp = async (req, res) => {
       }),
     });
 
-    res.json({ message: "OTP sent successfully" });
+    return res.json({ message: "OTP sent successfully" });
   } catch (err) {
     console.error("REQUEST OTP ERROR:", err);
-    res.status(500).json({
+    return res.status(500).json({
       message: "Failed to send OTP",
       error: err.message,
     });
