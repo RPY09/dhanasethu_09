@@ -136,19 +136,135 @@ const Notifications = () => {
 
     setPaidAmount(Math.min(val, max));
   };
+  const getPostPaymentState = (loan, paid, type) => {
+    let remainingInterest =
+      Number(loan.interestAmount || 0) - Number(loan.interestPaid || 0);
+    let remainingPrincipal = Number(loan.principal || 0);
+    let remainingTotal = remainingInterest + remainingPrincipal;
 
-  const sendWhatsAppToLender = (loan, amount, type) => {
-    if (loan.role !== "borrowed") return;
-    if (!loan.contact) return;
+    if (type === "interest") {
+      remainingInterest = Math.max(remainingInterest - paid, 0);
+    }
+
+    if (type === "principal") {
+      remainingPrincipal = Math.max(remainingPrincipal - paid, 0);
+    }
+
+    if (type === "full") {
+      remainingInterest = 0;
+      remainingPrincipal = 0;
+    }
+
+    return { remainingInterest, remainingPrincipal, remainingTotal };
+  };
+  const getDateTimeString = () => {
+    const now = new Date();
+    return now.toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
+
+  const sendWhatsAppMessage = (loan, paidAmount, type) => {
+    if (!loan?.contact) return;
+
+    const paid = Number(paidAmount);
+    const timestamp = getDateTimeString();
+
+    const { remainingInterest, remainingPrincipal } = getPostPaymentState(
+      loan,
+      paid,
+      type
+    );
+
+    const remainingTotal = remainingInterest + remainingPrincipal;
 
     let message = "";
 
-    if (type === "interest") {
-      message = `Hello ${loan.person}, I have paid ₹${amount} towards interest for the loan.`;
-    } else if (type === "principal") {
-      message = `Hello ${loan.person}, I have repaid ₹${amount} towards the principal amount.`;
-    } else {
-      message = `Hello ${loan.person}, I have fully settled the loan. Thank you.`;
+    if (loan.role === "borrowed") {
+      if (type === "interest") {
+        message = `Hello ${loan.person},
+
+₹${paid} interest payment paid to you.
+
+===== Date & Time: ${timestamp} =====
+
+• Remaining Interest: ₹${remainingInterest}
+• Remaining Principal: ₹${remainingPrincipal}
+• Total Due: ₹${remainingTotal}
+
+Thank you.`;
+      }
+
+      if (type === "principal") {
+        message = `Hello ${loan.person},
+
+₹${paid} principal payment paid to you.
+
+===== Date & Time: ${timestamp} =====
+
+• Remaining Principal: ₹${remainingPrincipal}
+• Remaining Interest: ₹${remainingInterest}
+• Total Due: ₹${remainingTotal}
+
+Thank you.`;
+      }
+
+      if (type === "full") {
+        message = `Hello ${loan.person},
+
+The loan has been fully settled.
+
+===== Date & Time: ${timestamp} =====
+
+-> Remaining Principal: ₹0
+-> Remaining Interest: ₹0
+-> Total Due: ₹0
+
+Thank you.`;
+      }
+    }
+
+    if (loan.role === "lent") {
+      if (type === "interest") {
+        message = `Hello ${loan.person},
+
+₹${paid} interest payment recorded.
+
+===== Date & Time: ${timestamp} =====
+
+• Remaining Interest: ₹${remainingInterest}
+• Remaining Principal: ₹${remainingPrincipal}
+• Total Due: ₹${remainingTotal}`;
+      }
+
+      if (type === "principal") {
+        message = `Hello ${loan.person},
+
+₹${paid} principal payment recorded.
+
+===== Date & Time: ${timestamp} =====
+
+• Remaining Principal: ₹${remainingPrincipal}
+• Remaining Interest: ₹${remainingInterest}
+• Total Due: ₹${remainingTotal}`;
+      }
+
+      if (type === "full") {
+        message = `Hello ${loan.person},
+
+The loan has been fully settled.
+
+===== Date & Time: ${timestamp} =====
+
+-> Remaining Principal: ₹0
+-> Remaining Interest: ₹0
+-> Total Due: ₹0`;
+      }
     }
 
     const encoded = encodeURIComponent(message);
@@ -156,13 +272,18 @@ const Notifications = () => {
   };
 
   const confirmSettle = async () => {
+    if (!paidAmount || Number(paidAmount) <= 0) {
+      alert("Enter a valid amount");
+      return;
+    }
+
     try {
       await settleLoan(selectedLoan._id, {
-        paidAmount,
+        paidAmount: Number(paidAmount),
         paymentType,
       });
 
-      sendWhatsAppToLender(selectedLoan, paidAmount, paymentType);
+      sendWhatsAppMessage(selectedLoan, paidAmount, paymentType);
 
       setShowSettleModal(false);
       fetchLoans();
@@ -170,7 +291,7 @@ const Notifications = () => {
       window.dispatchEvent(new Event("transactions:changed"));
       window.dispatchEvent(new Event("loans:changed"));
     } catch (err) {
-      alert("Settlement failed");
+      alert(err.response?.data?.message || "Settlement failed");
     }
   };
 
@@ -260,7 +381,11 @@ const Notifications = () => {
                     <button
                       className="q-icon wa"
                       onClick={() =>
-                        window.open(`https://wa.me/91${selectedLoan.contact}`)
+                        sendWhatsAppMessage(
+                          selectedLoan,
+                          getRemainingTotal(selectedLoan),
+                          "full"
+                        )
                       }
                     >
                       <i className="bi bi-whatsapp"></i>

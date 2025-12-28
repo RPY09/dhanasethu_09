@@ -106,29 +106,6 @@ exports.updateProfile = async (req, res) => {
 
 exports.requestPasswordOtp = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    await Otp.create({ email: user.email, otp });
-
-    await sendEmail({
-      email: user.email,
-      subject: "DhanaSethu OTP Verification",
-      html: otpEmailTemplate({
-        name: user.name,
-        otp,
-        purpose: "Password Reset Verification",
-      }),
-    });
-
-    res.json({ message: "OTP sent to registered email" });
-  } catch (err) {
-    res.status(500).json({ message: "Failed to send OTP" });
-  }
-};
-
-exports.requestPasswordOtp = async (req, res) => {
-  try {
     if (!req.user) {
       return res.status(401).json({ message: "Unauthorized" });
     }
