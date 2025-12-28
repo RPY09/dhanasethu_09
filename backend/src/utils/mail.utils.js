@@ -6,8 +6,8 @@ const sendEmail = async ({ email, subject, html }) => {
     port: 587,
     secure: false,
     auth: {
-      user: process.env.BREVO_USER, // must be "apikey"
-      pass: process.env.BREVO_PASS, // xsmtpsib-...
+      user: process.env.BREVO_USER,
+      pass: process.env.BREVO_PASS,
     },
   });
 
