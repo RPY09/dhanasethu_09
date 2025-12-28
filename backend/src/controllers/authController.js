@@ -127,26 +127,31 @@ exports.requestPasswordOtp = async (req, res) => {
   }
 };
 
-exports.resetPasswordOtp = async (req, res) => {
+exports.requestPasswordOtp = async (req, res) => {
   try {
-    const { otp, newPassword } = req.body;
-    const user = await User.findById(req.user._id);
-
-    const otpRecord = await Otp.findOne({ email: user.email, otp });
-
-    if (!otpRecord) {
-      return res.status(400).json({ message: "Invalid or expired OTP" });
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(newPassword, salt);
-    await user.save();
+    const user = await User.findById(req.user._id);
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    await Otp.deleteOne({ _id: otpRecord._id });
+    await Otp.create({ email: user.email, otp });
 
-    res.json({ message: "Password updated successfully" });
+    await sendEmail({
+      email: user.email,
+      subject: "DhanaSethu OTP Verification",
+      html: otpEmailTemplate({
+        name: user.name,
+        otp,
+        purpose: "Password Reset Verification",
+      }),
+    });
+
+    res.json({ message: "OTP sent to registered email" });
   } catch (err) {
-    res.status(500).json({ message: "Password reset failed" });
+    console.error("REQUEST OTP ERROR:", err);
+    res.status(500).json({ message: "Failed to send OTP" });
   }
 };
 
@@ -171,7 +176,7 @@ exports.forgotPasswordRequest = async (req, res) => {
       html: otpEmailTemplate({
         name: user.name,
         otp,
-        purpose: "Password Reset Verification",
+        purpose: "Login Verification",
       }),
     });
 
