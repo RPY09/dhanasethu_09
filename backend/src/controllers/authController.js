@@ -106,17 +106,26 @@ exports.updateProfile = async (req, res) => {
 
 exports.requestPasswordOtp = async (req, res) => {
   try {
-    if (!req.user) {
-      return res.status(401).json({ message: "Unauthorized" });
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
     }
 
-    const user = await User.findById(req.user._id);
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // clear old OTPs
+    await Otp.deleteMany({ email });
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    await Otp.create({ email: user.email, otp });
+    await Otp.create({ email, otp });
 
     await sendEmail({
-      email: user.email,
+      email,
       subject: "DhanaSethu OTP Verification",
       html: otpEmailTemplate({
         name: user.name,
@@ -125,10 +134,13 @@ exports.requestPasswordOtp = async (req, res) => {
       }),
     });
 
-    res.json({ message: "OTP sent to registered email" });
+    res.json({ message: "OTP sent successfully" });
   } catch (err) {
     console.error("REQUEST OTP ERROR:", err);
-    res.status(500).json({ message: "Failed to send OTP" });
+    res.status(500).json({
+      message: "Failed to send OTP",
+      error: err.message,
+    });
   }
 };
 

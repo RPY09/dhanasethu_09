@@ -16,10 +16,12 @@ router.post("/login-otp", authController.loginViaOtp);
 router.get("/refresh-token", protect, authController.refreshToken);
 router.put("/update-profile", protect, authController.updateProfile);
 router.post(
-  "/request-password-otp",
-  protect,
-  authController.requestPasswordOtp
+  -"/request-password-otp",
+  -protect,
+  -authController.requestPasswordOtp + "/request-password-otp",
+  +authController.requestPasswordOtp
 );
+
 // router.post("/reset-password-otp", protect, authController.resetPasswordOtp);
 
 module.exports = router;
