@@ -1,6 +1,6 @@
 const User = require("../models/UserModel");
 const Otp = require("../models/OtpModel");
-const sendEmail = require("../utils/mail.utils");
+const { sendEmail } = require("../utils/mail.utils");
 const { otpEmailTemplate } = require("../utils/emailTemplate");
 
 const bcrypt = require("bcryptjs");
@@ -221,3 +221,4 @@ exports.refreshToken = async (req, res) => {
     res.status(500).json({ message: "Token refresh failed" });
   }
 };
+// console.log("sendEmail type:", typeof sendEmail);
