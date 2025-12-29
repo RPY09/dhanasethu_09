@@ -120,6 +120,7 @@ const Home = () => {
             <a href="#about">Privacy Policy</a>
           </div>
           <div className="copyright">
+<p>R.P.Y</p>
             &copy; {new Date().getFullYear()} DhanaSethu. All rights reserved.
           </div>
         </div>
