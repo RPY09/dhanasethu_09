@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { getTransactions } from "../api/transaction.api";
 import { getLoanSummary } from "../api/loan.api";
+import { useAlert } from "../components/Alert/AlertContext";
+
 import "./Dashboard.css";
 
 const parseNumber = (v) => {
@@ -19,6 +21,8 @@ const detectPaymentMode = (t = {}) => {
 
 const Dashboard = () => {
   const [transactions, setTransactions] = useState([]);
+  const { showAlert } = useAlert();
+
   const [loanSummary, setLoanSummary] = useState({
     lent: 0,
     borrowed: 0,

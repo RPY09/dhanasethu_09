@@ -29,3 +29,8 @@ export const getTransactionById = async (id) => {
   const res = await api.get(`/transactions/${id}`);
   return res.data;
 };
+
+export const getTransactionTypes = async () => {
+  const res = await api.get("/transactions/types");
+  return res.data;
+};

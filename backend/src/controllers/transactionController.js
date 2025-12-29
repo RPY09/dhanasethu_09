@@ -72,3 +72,25 @@ exports.deleteTransaction = async (req, res) => {
     res.status(500).json({ message: "Failed to delete transaction" });
   }
 };
+
+// GET DISTINCT TRANSACTION TYPES (income / expense / loan / borrowed)
+exports.getTransactionTypes = async (req, res) => {
+  try {
+    const transactions = await Transaction.find(
+      { user: req.user._id },
+      { type: 1, paymentMode: 1, _id: 0 }
+    );
+
+    const types = new Set();
+
+    transactions.forEach((t) => {
+      if (t.paymentMode === "loan") types.add("loan");
+      else if (t.paymentMode === "borrow") types.add("borrowed");
+      else if (t.type) types.add(t.type);
+    });
+
+    res.json([...types]);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch transaction types" });
+  }
+};

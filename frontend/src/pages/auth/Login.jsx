@@ -6,6 +6,8 @@ import {
 } from "../../api/auth.api";
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAlert } from "../../components/Alert/AlertContext";
+
 import "./Auth.css";
 
 const Login = () => {
@@ -13,6 +15,8 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [isOtpMode, setIsOtpMode] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
+  const { showAlert } = useAlert();
+
   const navigate = useNavigate();
 
   const handleChange = (e) => {

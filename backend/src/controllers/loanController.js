@@ -220,13 +220,37 @@ exports.settleLoan = async (req, res) => {
 // UPDATE LOAN
 exports.updateLoan = async (req, res) => {
   try {
-    const loan = await Loan.findOneAndUpdate(
-      { _id: req.params.id, user: req.user._id },
-      req.body,
-      { new: true }
-    );
+    const loan = await Loan.findOne({
+      _id: req.params.id,
+      user: req.user._id,
+    });
 
-    if (!loan) return res.status(404).json({ message: "Loan not found" });
+    if (!loan) {
+      return res.status(404).json({ message: "Loan not found" });
+    }
+
+    const oldAmount = Number(loan.principal);
+
+    // Update loan
+    Object.assign(loan, req.body);
+    loan.principal = Number(req.body.amount);
+    await loan.save();
+
+    await Transaction.findOneAndUpdate(
+      {
+        loanId: loan._id,
+        user: req.user._id,
+        isPrincipal: true,
+        note: { $regex: /loan|borrowed/i },
+      },
+      {
+        amount: loan.principal,
+        note:
+          loan.role === "lent"
+            ? `Loan given to ${loan.person}`
+            : `Loan borrowed from ${loan.person}`,
+      }
+    );
 
     res.json(loan);
   } catch (err) {

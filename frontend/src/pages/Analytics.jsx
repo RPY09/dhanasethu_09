@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { getTransactions } from "../api/transaction.api";
 import { motion } from "framer-motion";
+import { useAlert } from "../components/Alert/AlertContext";
+
 import {
   BarChart,
   Bar,
@@ -29,16 +31,21 @@ const formatCurrency = (n) =>
 
 const getWeeksInMonth = (year, month) => {
   const weeks = [];
-  let start = new Date(year, month, 1);
-  const monthEnd = new Date(year, month + 1, 0);
-  while (start <= monthEnd) {
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6);
-    if (end > monthEnd) end.setTime(monthEnd.getTime());
-    weeks.push({ start: new Date(start), end: new Date(end) });
-    start = new Date(end);
-    start.setDate(end.getDate() + 1);
+  let current = new Date(year, month, 1);
+
+  while (current.getMonth() === month) {
+    const weekStart = new Date(current);
+    weekStart.setHours(0, 0, 0, 0);
+
+    const weekEnd = new Date(current);
+    weekEnd.setDate(current.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
+
+    weeks.push({ start: weekStart, end: weekEnd });
+
+    current.setDate(current.getDate() + 7);
   }
+
   return weeks;
 };
 
@@ -53,6 +60,10 @@ const Analytics = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [paymentFilter, setPaymentFilter] = useState("income");
+  const [categoryFilter, setCategoryFilter] = useState("expense");
+  const [investPaymentFilter, setInvestPaymentFilter] = useState("all");
+  const { showAlert } = useAlert();
+
   const [loanViewMode, setLoanViewMode] = useState("principal"); // "principal" | "interest"
 
   useEffect(() => {
@@ -212,30 +223,53 @@ const Analytics = () => {
 
   // Expense by category (for second pie)
   const categoryChartData = useMemo(() => {
-    const expenseByCategory = {};
+    const dataByCategory = {};
     filteredTransactions
-      .filter(
-        (t) =>
-          t.type === "expense" &&
-          !["loan", "borrow"].includes((t.paymentMode || "").toLowerCase()) // Added filter
-      )
+      .filter((t) => {
+        // Filter by the selected type (income or expense)
+        const typeMatch = t.type === categoryFilter;
+        // Exclude internal loan/borrow transfers from general breakdown
+        const notLoan = !["loan", "borrow"].includes(
+          (t.paymentMode || "").toLowerCase()
+        );
+        return typeMatch && notLoan;
+      })
       .forEach((t) => {
-        const cat = t.category || "Uncategorized";
-        expenseByCategory[cat] =
-          (expenseByCategory[cat] || 0) + Number(t.amount || 0);
+        // Capitalize the category name
+        const cat = t.category
+          ? t.category.charAt(0).toUpperCase() +
+            t.category.slice(1).toLowerCase()
+          : "Uncategorized";
+
+        dataByCategory[cat] =
+          (dataByCategory[cat] || 0) + Number(t.amount || 0);
       });
-    return Object.keys(expenseByCategory).map((cat) => ({
+
+    return Object.keys(dataByCategory).map((cat) => ({
       name: cat,
-      value: expenseByCategory[cat],
+      value: dataByCategory[cat],
     }));
-  }, [filteredTransactions]);
+  }, [filteredTransactions, categoryFilter]);
 
   const investmentCategoryData = useMemo(() => {
     const investByCategory = {};
     filteredTransactions
-      .filter((t) => isInvestment(t))
+      .filter((t) => {
+        const isInvestType = isInvestment(t);
+        // Filter by payment mode if not set to "all"
+        const matchesMode =
+          investPaymentFilter === "all" ||
+          (t.paymentMode || "").toLowerCase() === investPaymentFilter;
+
+        return isInvestType && matchesMode;
+      })
       .forEach((t) => {
-        const cat = t.category || "Uncategorized";
+        // Capitalize the category name
+        const cat = t.category
+          ? t.category.charAt(0).toUpperCase() +
+            t.category.slice(1).toLowerCase()
+          : "Uncategorized";
+
         investByCategory[cat] =
           (investByCategory[cat] || 0) + Number(t.amount || 0);
       });
@@ -244,7 +278,8 @@ const Analytics = () => {
       name: cat,
       value: investByCategory[cat],
     }));
-  }, [filteredTransactions]);
+  }, [filteredTransactions, investPaymentFilter]);
+
   const loanProfitLossData = useMemo(() => {
     if (loanViewMode === "interest") {
       return [
@@ -506,12 +541,28 @@ const Analytics = () => {
                 fill="#B58863"
                 radius={[4, 4, 0, 0]}
                 barSize={30}
+                label={{
+                  position: "top",
+                  fontSize: "10px",
+                  fontWeight: "700",
+                  fill: "#B58863",
+                  fontFamily: "Inter",
+                  offset: 5,
+                }}
               />
               <Bar
                 dataKey="Expense"
                 fill="#10232A"
                 radius={[4, 4, 0, 0]}
                 barSize={30}
+                label={{
+                  position: "top",
+                  fontSize: "10px",
+                  fontWeight: "700",
+                  fill: "#10232A",
+                  fontFamily: "Inter",
+                  offset: 5,
+                }}
               />
             </BarChart>
           </ResponsiveContainer>
@@ -541,6 +592,13 @@ const Analytics = () => {
                   outerRadius={80}
                   paddingAngle={5}
                   dataKey="value"
+                  label={{
+                    fontSize: "10px",
+                    fontWeight: "700",
+                    fill: "#10232A",
+                    fontFamily: "Inter",
+                  }}
+                  labelLine={{ stroke: "#A79E9C", strokeWidth: 1 }}
                 >
                   {paymentTypeData.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
@@ -554,42 +612,108 @@ const Analytics = () => {
         </div>
 
         <div className="chart-card">
-          <h3>Category Breakdown</h3>
+          <div
+            className="headerselect"
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "15px",
+            }}
+          >
+            <h3 style={{ margin: 0 }}>Category Breakdown</h3>
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              style={{ padding: "4px 8px", fontSize: "12px" }}
+            >
+              <option value="expense">Expenses</option>
+              <option value="income">Income</option>
+            </select>
+          </div>
+
           <div className="chart-wrapper">
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
-                <Pie data={categoryChartData} outerRadius={80} dataKey="value">
+                <Pie
+                  data={categoryChartData}
+                  // innerRadius={45}
+                  outerRadius={65}
+                  // outerRadius={80}
+                  dataKey="value"
+                  label={{
+                    fontSize: "10px",
+                    fontWeight: "700",
+                    fill: "#10232A",
+                    fontFamily: "Inter",
+                  }}
+                  labelLine={{ stroke: "#A79E9C", strokeWidth: 1 }}
+                  // label={({ name }) => name}
+                >
                   {categoryChartData.map((_, i) => (
                     <Cell key={i} fill={COLORS[i % COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip />
                 <Legend
-                  layout="vertical"
-                  align="right"
-                  verticalAlign="middle"
+                  layout="horizontal"
+                  verticalAlign="bottom"
+                  align="center"
                 />
               </PieChart>
             </ResponsiveContainer>
           </div>
         </div>
         <div className="chart-card">
-          <h3>Investment Breakdown</h3>
-          <ResponsiveContainer width="100%" height={250}>
-            <PieChart>
-              <Pie
-                data={investmentCategoryData}
-                outerRadius={80}
-                dataKey="value"
-              >
-                {investmentCategoryData.map((_, i) => (
-                  <Cell key={i} fill={COLORS[(i + 3) % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
+          <div
+            className="headerselect"
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "15px",
+            }}
+          >
+            <h3 style={{ margin: 0 }}>Investment Breakdown</h3>
+            <select
+              value={investPaymentFilter}
+              onChange={(e) => setInvestPaymentFilter(e.target.value)}
+              style={{ padding: "4px 8px", fontSize: "12px" }}
+            >
+              <option value="all">All Modes</option>
+              <option value="online">Online</option>
+              <option value="cash">Cash</option>
+            </select>
+          </div>
+
+          <div className="chart-wrapper">
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={investmentCategoryData}
+                  outerRadius={65}
+                  dataKey="value"
+                  label={{
+                    fontSize: "10px",
+                    fontWeight: "700",
+                    fill: "#10232A", // Deep Teal from your palette
+                    fontFamily: "Inter",
+                  }}
+                  labelLine={{ stroke: "#A79E9C", strokeWidth: 1 }}
+                >
+                  {investmentCategoryData.map((_, i) => (
+                    <Cell key={i} fill={COLORS[(i + 3) % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend
+                  layout="horizontal"
+                  verticalAlign="bottom"
+                  align="center"
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         </div>
         <div className="chart-card">
           <div
@@ -621,6 +745,13 @@ const Analytics = () => {
                   outerRadius={80}
                   paddingAngle={5}
                   dataKey="value"
+                  label={{
+                    fontSize: "10px",
+                    fontWeight: "700",
+                    fill: "#10232A",
+                    fontFamily: "Inter",
+                  }}
+                  labelLine={{ stroke: "#A79E9C", strokeWidth: 1 }}
                 >
                   {loanPieData.map((entry, i) => (
                     <Cell

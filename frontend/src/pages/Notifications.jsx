@@ -2,6 +2,8 @@ import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { getLoans, settleLoan, deleteLoan } from "../api/loan.api";
+import { useAlert } from "../components/Alert/AlertContext";
+
 import "./Notifications.css";
 
 const ITEMS_PER_PAGE = 5;
@@ -9,6 +11,7 @@ const ITEMS_PER_PAGE = 5;
 const Notifications = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { showAlert } = useAlert();
 
   const [loans, setLoans] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -273,7 +276,7 @@ The loan has been fully settled.
 
   const confirmSettle = async () => {
     if (!paidAmount || Number(paidAmount) <= 0) {
-      alert("Enter a valid amount");
+      showAlert("Enter a valid amount", "warning");
       return;
     }
 
@@ -291,7 +294,7 @@ The loan has been fully settled.
       window.dispatchEvent(new Event("transactions:changed"));
       window.dispatchEvent(new Event("loans:changed"));
     } catch (err) {
-      alert(err.response?.data?.message || "Settlement failed");
+      showAlert(err.response?.data?.message || "Settlement failed", "error");
     }
   };
 
@@ -399,11 +402,18 @@ The loan has been fully settled.
                   </button>
                   <button
                     className="q-icon del"
-                    onClick={async () => {
-                      if (confirm("Delete?"))
-                        await deleteLoan(selectedLoan._id);
-                      fetchLoans();
-                      setShowSettleModal(false);
+                    onClick={() => {
+                      showAlert(
+                        "Do you want to delete this loan record?",
+                        "error",
+                        true,
+                        async () => {
+                          await deleteLoan(selectedLoan._id);
+                          fetchLoans();
+                          setShowSettleModal(false);
+                          showAlert("Loan deleted", "success");
+                        }
+                      );
                     }}
                   >
                     <i className="bi bi-trash"></i>

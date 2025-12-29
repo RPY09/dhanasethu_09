@@ -2,10 +2,15 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { addTransaction } from "../api/transaction.api";
+import { useAlert } from "../components/Alert/AlertContext";
+
 import "./AddTransaction.css";
 
 const AddTransaction = () => {
   const navigate = useNavigate();
+  const { showAlert } = useAlert();
+
+  const [loading, setLoading] = useState(false);
   const today = new Date().toISOString().split("T")[0];
 
   const [form, setForm] = useState({
@@ -23,6 +28,7 @@ const AddTransaction = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true); // Start loading
 
     const payload = {
       ...form,
@@ -31,10 +37,13 @@ const AddTransaction = () => {
 
     try {
       await addTransaction(payload);
+      showAlert("Transaction saved successfully!", "success");
       window.dispatchEvent(new Event("transactions:changed"));
       navigate("/transactions");
     } catch (err) {
-      alert("Failed to add transaction");
+      showAlert("Failed to add transaction. Try again.", "error");
+    } finally {
+      setLoading(false); // Stop loading
     }
   };
 
@@ -123,9 +132,10 @@ const AddTransaction = () => {
             <motion.button
               type="submit"
               className="submit-btn"
+              disabled={loading} // Disable while loading
               whileTap={{ scale: 0.98 }}
             >
-              Save Transaction
+              {loading ? <span className="spinner"></span> : "Save Transaction"}
             </motion.button>
 
             <button

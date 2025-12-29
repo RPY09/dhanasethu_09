@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { getTransactions, deleteTransaction } from "../api/transaction.api";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { getTransactionTypes } from "../api/transaction.api";
+import { useAlert } from "../components/Alert/AlertContext";
 import "./Transactions.css";
 
 const DEFAULT_LIMIT = 20;
@@ -33,6 +35,7 @@ const isSettlementTransaction = (t) => {
 
   return (
     note.includes("received") ||
+    note.includes("principal") ||
     note.includes("repaid") ||
     note.includes("interest")
   );
@@ -43,11 +46,14 @@ const Transactions = () => {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const { showAlert } = useAlert();
 
   // Filters & Sort
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [sortBy, setSortBy] = useState("newest");
+  const [types, setTypes] = useState([]);
+  const [selectedType, setSelectedType] = useState("all");
 
   const [availableYears, setAvailableYears] = useState([]);
   const containerRef = useRef(null);
@@ -60,7 +66,7 @@ const Transactions = () => {
     setHasMore(true);
     loadPage(1, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedYear, selectedMonth, sortBy]);
+  }, [selectedYear, selectedMonth, sortBy, selectedType]);
 
   useEffect(() => {
     fetchAvailableYears();
@@ -85,6 +91,19 @@ const Transactions = () => {
       console.warn("fetchAvailableYears failed", err);
     }
   }
+  //for types
+  useEffect(() => {
+    const fetchTypes = async () => {
+      try {
+        const data = await getTransactionTypes();
+        setTypes(data || []);
+      } catch (err) {
+        console.error("Failed to load transaction types", err);
+      }
+    };
+
+    fetchTypes();
+  }, []);
 
   const loadPage = async (pageNum = 1, isReset = false) => {
     if (loading && !isReset) return;
@@ -107,6 +126,7 @@ const Transactions = () => {
       }
 
       const serverData = normalizeResponse(res);
+
       const filteredByDate = serverData.filter((t) => {
         const d = new Date(t.date);
         return (
@@ -114,8 +134,18 @@ const Transactions = () => {
         );
       });
 
+      const filteredByType =
+        selectedType === "all"
+          ? filteredByDate
+          : filteredByDate.filter((t) => {
+              if (selectedType === "loan") return t.paymentMode === "loan";
+              if (selectedType === "borrowed")
+                return t.paymentMode === "borrow";
+              return t.type === selectedType; // income / expense
+            });
+
       // sort & normalize
-      const processedData = filteredByDate.slice().sort((a, b) => {
+      const processedData = filteredByType.slice().sort((a, b) => {
         if (sortBy === "newest") return parseDate(b.date) - parseDate(a.date);
         if (sortBy === "oldest") return parseDate(a.date) - parseDate(b.date);
         if (sortBy === "amount-desc")
@@ -124,21 +154,13 @@ const Transactions = () => {
           return parseAmount(a.amount) - parseAmount(b.amount);
         return 0;
       });
-      setTransactions((prev) => {
-        const merged = isReset ? processedData : [...prev, ...processedData];
 
-        return merged.slice().sort((a, b) => {
-          if (sortBy === "newest") return parseDate(b.date) - parseDate(a.date);
-          if (sortBy === "oldest") return parseDate(a.date) - parseDate(b.date);
-          if (sortBy === "amount-desc")
-            return parseAmount(b.amount) - parseAmount(a.amount);
-          if (sortBy === "amount-asc")
-            return parseAmount(a.amount) - parseAmount(b.amount);
-          return 0;
-        });
-      });
+      setTransactions((prev) =>
+        isReset ? processedData : [...prev, ...processedData]
+      );
 
-      setHasMore(serverData.length === DEFAULT_LIMIT);
+      setHasMore(processedData.length === DEFAULT_LIMIT);
+
       setPage(pageNum);
     } catch (err) {
       console.error("Load failed", err);
@@ -147,17 +169,33 @@ const Transactions = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this transaction?")) return;
-
-    await deleteTransaction(id);
-
-    // notify dashboard FIRST
-    window.dispatchEvent(new Event("transactions:changed"));
-
-    // then reload list
-    loadPage(1, true);
+  const handleDelete = (id) => {
+    showAlert(
+      "Are you sure? This transaction will be removed permanently.",
+      "error",
+      true, // isDelete
+      async () => {
+        // This code only runs if the user clicks "Delete" in the custom modal
+        try {
+          await deleteTransaction(id);
+          showAlert("Transaction deleted", "success");
+          window.dispatchEvent(new Event("transactions:changed"));
+          loadPage(1, true);
+        } catch (err) {
+          showAlert("Failed to delete", "error");
+        }
+      }
+    );
   };
+  const sortedTransactions = [...transactions].sort((a, b) => {
+    if (sortBy === "newest") return parseDate(b.date) - parseDate(a.date);
+    if (sortBy === "oldest") return parseDate(a.date) - parseDate(b.date);
+    if (sortBy === "amount-desc")
+      return parseAmount(b.amount) - parseAmount(a.amount);
+    if (sortBy === "amount-asc")
+      return parseAmount(a.amount) - parseAmount(b.amount);
+    return 0;
+  });
 
   return (
     <motion.div
@@ -206,22 +244,42 @@ const Transactions = () => {
             ))}
           </select>
         </div>
+        <div className="sortingg">
+          <select
+            className="tx-sort-select"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+          >
+            <option value="newest">Newest First</option>
+            <option value="oldest">Oldest First</option>
+            <option value="amount-desc">Highest Amount</option>
+            <option value="amount-asc">Lowest Amount</option>
+          </select>
+          <select
+            className="tx-sort-select"
+            value={selectedType}
+            onChange={(e) => {
+              setSelectedType(e.target.value);
+              setTransactions([]);
+              setPage(1);
+              setHasMore(true);
+              loadPage(1, true);
+            }}
+          >
+            <option value="all">All Types</option>
 
-        <select
-          className="tx-sort-select"
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value)}
-        >
-          <option value="newest">Newest First</option>
-          <option value="oldest">Oldest First</option>
-          <option value="amount-desc">Highest Amount</option>
-          <option value="amount-asc">Lowest Amount</option>
-        </select>
+            {types.map((t) => (
+              <option key={t} value={t}>
+                {t.charAt(0).toUpperCase() + t.slice(1)}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="tx-list" ref={containerRef}>
         <AnimatePresence mode="popLayout">
-          {transactions.map((t, i) => (
+          {sortedTransactions.map((t, i) => (
             <motion.div
               layout
               initial={{ opacity: 0, y: 20 }}

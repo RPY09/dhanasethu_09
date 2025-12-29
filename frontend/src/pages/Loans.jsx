@@ -2,10 +2,15 @@ import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { addLoan } from "../api/loan.api";
 import { useNavigate } from "react-router-dom";
+import { useAlert } from "../components/Alert/AlertContext";
+
 import "./Loans.css";
 
 const Loans = () => {
   const navigate = useNavigate();
+  const { showAlert } = useAlert();
+
+  const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     person: "",
     contact: "",
@@ -45,10 +50,10 @@ const Loans = () => {
       if (months >= 12) {
         // Yearly simple interest
         const years = months / 12;
-        return Math.round((p * r * years) / 100);
+        return Math.round(((p * r * years) / 100).toFixed(2));
       } else {
         // Monthly simple interest
-        return Math.round((p * r * months) / 100);
+        return Number(((p * r * months) / 100).toFixed(2));
       }
     }
 
@@ -77,8 +82,8 @@ const Loans = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.contact) return alert("Phone number is required");
-
+    if (!form.contact) return showAlert("Phone number is required", "warning");
+    setLoading(true);
     try {
       const payload = {
         ...form,
@@ -90,13 +95,16 @@ const Loans = () => {
       };
 
       await addLoan(payload);
+      showAlert("New loan entry created.", "success");
       window.dispatchEvent(new Event("loans:changed"));
       window.dispatchEvent(new Event("transactions:changed"));
 
       const targetTab = form.role === "borrowed" ? "borrowed" : "lent";
       navigate("/notifications", { state: { activeTab: targetTab } });
     } catch (err) {
-      alert("Failed to save loan");
+      showAlert("Error saving loan.", "error");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -175,7 +183,7 @@ const Loans = () => {
                 onChange={handleChange}
               >
                 <option value="simple">Simple</option>
-                <option value="monthly">Monthly</option>
+                <option value="monthly">Compound</option>
               </select>
             </div>
           </div>
@@ -224,9 +232,10 @@ const Loans = () => {
           <motion.button
             type="submit"
             className="loan-submit"
+            disabled={loading}
             whileTap={{ scale: 0.98 }}
           >
-            Save Entry
+            {loading ? <span className="spinner"></span> : "Save Entry"}
           </motion.button>
         </form>
       </div>

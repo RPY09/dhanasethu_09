@@ -82,6 +82,12 @@
   background-size: 16px;
 }
 
+.sortingg {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
 /* Transaction Cards */
 .tx-list {
   display: flex;

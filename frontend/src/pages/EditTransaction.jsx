@@ -2,11 +2,16 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { updateTransaction } from "../api/transaction.api";
+import { useAlert } from "../components/Alert/AlertContext";
+
 import "./AddTransaction.css";
 
 const EditTransaction = () => {
   const { state } = useLocation();
+  const { showAlert } = useAlert();
+
   const { id } = useParams();
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
@@ -24,11 +29,14 @@ const EditTransaction = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
     try {
       await updateTransaction(id, form);
+      showAlert("Update successfull", "success");
       navigate("/transactions");
     } catch (err) {
-      alert("Failed to update transaction");
+      showAlert("Failed to update transaction", "error");
+      setSubmitting(false); // Only reset if failed, otherwise we navigate away
     }
   };
 
@@ -124,10 +132,15 @@ const EditTransaction = () => {
             <motion.button
               type="submit"
               className="submit-btn"
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
+              disabled={submitting}
             >
-              {state ? "Update Transaction" : "Save Transaction"}
+              {submitting ? (
+                <span className="spinner"></span>
+              ) : state ? (
+                "Update Transaction"
+              ) : (
+                "Save Transaction"
+              )}
             </motion.button>
 
             <button

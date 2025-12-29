@@ -1,0 +1,141 @@
+.alert-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.alert-box {
+  pointer-events: auto;
+  min-width: 280px;
+  padding: 16px 20px;
+  border-radius: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.alert-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.alert-content i {
+  font-size: 1.2rem;
+}
+.alert-content strong {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+.alert-content p {
+  font-size: 14px;
+  margin: 0;
+  opacity: 0.9;
+}
+
+/* Colors based on your image palette */
+.alert-box.success {
+  background: #b58863;
+  color: #fff;
+} /* Tan accent */
+.alert-box.error {
+  background: #10232a;
+  color: #fff;
+} /* Deep Teal */
+.alert-box.warning {
+  background: #f4f1ee;
+  color: #10232a;
+} /* Beige */
+
+.alert-close {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.6;
+  font-size: 1.1rem;
+}
+/* ... existing alert styles ... */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(16, 35, 42, 0.6); /* Deep Teal with transparency */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10001;
+  backdrop-filter: blur(4px);
+}
+
+.confirm-modal {
+  background: #ffffff;
+  padding: 30px;
+  border-radius: 24px;
+  width: 90%;
+  max-width: 350px;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.confirm-icon {
+  width: 60px;
+  height: 60px;
+  background: #f4f1ee; /* Beige */
+  color: #10232a; /* Deep Teal */
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0 auto 15px;
+  font-size: 24px;
+}
+
+.confirm-modal h3 {
+  color: #10232a;
+  margin-bottom: 8px;
+  font-weight: 800;
+}
+.confirm-modal p {
+  color: #a79e9c;
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-cancel {
+  flex: 1;
+  background: #f4f1ee;
+  border: none;
+  padding: 12px;
+  border-radius: 12px;
+  font-weight: 700;
+  color: #10232a;
+  cursor: pointer;
+}
+
+.btn-delete {
+  flex: 1;
+  background: #10232a; /* Deep Teal */
+  border: none;
+  padding: 12px;
+  border-radius: 12px;
+  font-weight: 700;
+  color: #ffffff;
+  cursor: pointer;
+}

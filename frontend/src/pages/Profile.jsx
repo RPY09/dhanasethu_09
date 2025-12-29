@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAlert } from "../components/Alert/AlertContext";
+
 import {
   updateProfile,
   requestPasswordOtp,
@@ -10,6 +12,8 @@ import "./Profile.css";
 
 const Profile = () => {
   const navigate = useNavigate();
+  const { showAlert } = useAlert();
+
   const [user, setUser] = useState(
     JSON.parse(localStorage.getItem("user") || "{}")
   );
@@ -38,10 +42,11 @@ const Profile = () => {
       localStorage.setItem("user", JSON.stringify(updatedUser));
       setUser(updatedUser);
       setIsEditing(false);
-      alert("Profile updated successfully");
+      showAlert("Profile updated!", "success");
     } catch (err) {
-      alert(
-        err.response?.data?.message || "Update failed. Is the server running?"
+      showAlert(
+        err.response?.data?.message || "Update failed. Is the server running?",
+        "error"
       );
     }
   };
@@ -51,9 +56,9 @@ const Profile = () => {
     try {
       await requestPasswordOtp();
       setStep(2);
-      alert("OTP sent to your registered email");
+      showAlert("OTP sent to your email", "success");
     } catch (err) {
-      alert("Failed to send OTP. Check backend connection.");
+      showAlert("Failed to send OTP. Check backend connection.", "error");
     } finally {
       setLoading(false);
     }
@@ -66,9 +71,9 @@ const Profile = () => {
       setShowPasswordModal(false);
       setStep(1);
       setPwdData({ otp: "", newPassword: "" });
-      alert("Password updated successfully");
+      showAlert("Password updated successfully", "success");
     } catch (err) {
-      alert(err.response?.data?.message || "Invalid OTP");
+      showAlert(err.response?.data?.message || "Invalid OTP", "error");
     }
   };
 

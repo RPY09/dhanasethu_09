@@ -2,10 +2,14 @@ import { useState } from "react";
 import { registerUser } from "../../api/auth.api";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useAlert } from "../../components/Alert/AlertContext";
+
 import "./Auth.css";
 
 const Register = () => {
   const navigate = useNavigate();
+  const { showAlert } = useAlert();
+
   const [form, setForm] = useState({
     name: "",
     email: "",
