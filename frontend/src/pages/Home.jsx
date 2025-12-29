@@ -113,7 +113,7 @@ const Home = () => {
           <div className="footer-logo">
             Dhana<span>Sethu</span>
           </div>
-          <p>The bridge to your financial clarity.</p>
+          <p>Your Financial Bridge.</p>
           <div className="footer-links">
             <Link to="/login">Login</Link>
             <Link to="/register">Register</Link>
