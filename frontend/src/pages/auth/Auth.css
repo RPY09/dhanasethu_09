@@ -21,7 +21,21 @@
   overflow: hidden;
   box-sizing: border-box;
 }
+.auth-logo-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
 
+.auth-brand-icon {
+  height: 85px;
+  width: auto;
+  object-fit: contain;
+}
+
+.auth-card {
+  padding: 24px 24px 32px;
+}
 .auth-card {
   background: var(--card-bg);
   width: 100%;

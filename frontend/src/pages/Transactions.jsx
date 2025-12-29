@@ -187,6 +187,7 @@ const Transactions = () => {
       }
     );
   };
+
   const sortedTransactions = [...transactions].sort((a, b) => {
     if (sortBy === "newest") return parseDate(b.date) - parseDate(a.date);
     if (sortBy === "oldest") return parseDate(a.date) - parseDate(b.date);

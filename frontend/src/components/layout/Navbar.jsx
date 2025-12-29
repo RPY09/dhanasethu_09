@@ -1,6 +1,7 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import "./Navbar.css";
+import appIcon from "../../assets/dhanasethu_icon.png";
 import { getLoans } from "../../api/loan.api";
 
 const authNavItems = [
@@ -28,7 +29,7 @@ const authNavItems = [
   {
     key: "loan",
     to: "/loan",
-    label: "Lend",
+    label: "Deals",
     icon: "bi-cash-coin",
     type: "link",
   },
@@ -127,26 +128,34 @@ const Navbar = () => {
     <>
       {/* TOP NAV */}
       <header className="zira-top-nav">
-        <div className="zira-logo" onClick={() => navigate("/dashboard")}>
-          Dhana<span>Sethu</span>
+        <div
+          className="zira-logo-container" /* Changed class name for better targeting */
+          onClick={() => navigate("/dashboard")}
+        >
+          <div className="logo-image-wrapper">
+            <img src={appIcon} alt="DhanaSethu" className="app-logo-img" />
+          </div>
+          <span className="logo-text">
+            Dhana<span id="spans">Sethu</span>
+          </span>
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-          {/* 🔔 Notification Bell */}
+          {/* Notification Bell */}
           <div
-            className="zira-bell"
+            className={`zira-top-item ${isActive("/notifications") ? "active" : ""}`} // Add this class
             onClick={() => navigate("/notifications")}
             style={{ cursor: "pointer", position: "relative" }}
           >
-            <i className="bi bi-bell"></i>
+            <i className="bi bi-receipt"></i>
             {notificationCount > 0 && (
               <span className="zira-bell-badge">{notificationCount}</span>
             )}
           </div>
 
-          {/* 👤 Profile */}
+          {/* Profile */}
           <div
-            className="zira-user-avatar"
+            className={`zira-top-item ${isActive("/profile") ? "active" : ""}`} // Add this class
             onClick={() => navigate("/profile")}
             style={{ cursor: "pointer" }}
           >

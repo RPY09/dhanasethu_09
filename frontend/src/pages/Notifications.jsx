@@ -274,6 +274,48 @@ The loan has been fully settled.
     window.open(`https://wa.me/91${loan.contact}?text=${encoded}`, "_blank");
   };
 
+  const sendWhatsAppReminder = (loan) => {
+    if (!loan?.contact) return;
+
+    const takenDate = new Date(loan.startDate).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+
+    const dueDate = new Date(loan.dueDate).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      month: "short",
+      year: "numeric",
+    });
+
+    const interestRemaining =
+      Number(loan.interestAmount || 0) - Number(loan.interestPaid || 0);
+
+    const principalRemaining = Number(loan.principal || 0);
+    const totalRemaining = principalRemaining + Math.max(interestRemaining, 0);
+
+    const message = `Hello ${loan.person},
+
+You have taken an amount of ₹${principalRemaining} on ${takenDate}.
+
+-> Current Loan Summary:
+• Principal Remaining: ₹${principalRemaining}
+• Interest Remaining: ₹${Math.max(interestRemaining, 0)}
+• Total Amount Due: ₹${totalRemaining}
+
+-> Important Dates:
+• Due Date: ${dueDate}
+
+=> Please let me know when you will pay the amount.
+
+Thank you.`;
+
+    const encoded = encodeURIComponent(message);
+    window.open(`https://wa.me/91${loan.contact}?text=${encoded}`, "_blank");
+  };
+
   const confirmSettle = async () => {
     if (!paidAmount || Number(paidAmount) <= 0) {
       showAlert("Enter a valid amount", "warning");
@@ -383,13 +425,7 @@ The loan has been fully settled.
                   {selectedLoan.role === "lent" && (
                     <button
                       className="q-icon wa"
-                      onClick={() =>
-                        sendWhatsAppMessage(
-                          selectedLoan,
-                          getRemainingTotal(selectedLoan),
-                          "full"
-                        )
-                      }
+                      onClick={() => sendWhatsAppReminder(selectedLoan)}
                     >
                       <i className="bi bi-whatsapp"></i>
                     </button>

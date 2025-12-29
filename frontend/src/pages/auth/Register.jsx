@@ -3,7 +3,7 @@ import { registerUser } from "../../api/auth.api";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAlert } from "../../components/Alert/AlertContext";
-
+import appIcon from "../../assets/dhanasethuIconWithName.png";
 import "./Auth.css";
 
 const Register = () => {
@@ -41,6 +41,9 @@ const Register = () => {
       transition={{ duration: 0.4 }}
     >
       <div className="auth-card">
+        <div className="auth-logo-wrap">
+          <img src={appIcon} alt="DhanaSethu" className="auth-brand-icon" />
+        </div>
         <header className="auth-header">
           <h2>Get Started</h2>
           <p>Join DhanaSethu and Manage Wealth</p>

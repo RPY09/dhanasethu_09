@@ -7,7 +7,7 @@ import {
 import { useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAlert } from "../../components/Alert/AlertContext";
-
+import appIcon from "../../assets/dhanasethuIconWithName.png";
 import "./Auth.css";
 
 const Login = () => {
@@ -67,6 +67,9 @@ const Login = () => {
       animate={{ opacity: 1 }}
     >
       <div className="auth-card">
+        <div className="auth-logo-wrap">
+          <img src={appIcon} alt="DhanaSethu" className="auth-brand-icon" />
+        </div>
         <header className="auth-header">
           <h2>{isOtpMode ? "OTP Login" : "Welcome Back"}</h2>
           <p>
