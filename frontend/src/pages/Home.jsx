@@ -4,6 +4,8 @@ import appIcon from "../assets/dhanasethuIconWithName.png";
 import "./Home.css";
 
 const Home = () => {
+  const isLoggedIn = Boolean(localStorage.getItem("token"));
+
   return (
     <div className="home-wrapper">
       {/* Hero Section */}
@@ -29,10 +31,25 @@ const Home = () => {
             you track expenses, manage loans, and visualize your path to wealth.
           </p>
           <div className="hero-btns">
-            <Link to="/login">
-              <button className="btn-primary">Get Started</button>
-            </Link>
-            <button className="btn-secondary">View Analytics</button>
+            {isLoggedIn ? (
+              <>
+                <Link to="/dashboard">
+                  <button className="btn-primary">Dashboard</button>
+                </Link>
+                <Link to="/add-transaction">
+                  <button className="btn-secondary">Add Transaction</button>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link to="/login">
+                  <button className="btn-primary">Get Started</button>
+                </Link>
+                <Link to="/register">
+                  <button className="btn-secondary">Create Account</button>
+                </Link>
+              </>
+            )}
           </div>
         </motion.div>
       </section>
@@ -49,6 +66,7 @@ const Home = () => {
           your money—balancing daily spending with long-term investments and
           private lending/borrowing records.
         </p>
+
         <div className="feature-grid">
           <div className="feature-card">
             <i className="bi bi-graph-up-arrow"></i>
@@ -115,10 +133,20 @@ const Home = () => {
           </div>
           <p>Your Financial Bridge.</p>
           <div className="footer-links">
-            <Link to="/login">Login</Link>
-            <Link to="/register">Register</Link>
+            {isLoggedIn ? (
+              <>
+                <Link to="/dashboard">Dashboard</Link>
+                <Link to="/profile">Profile</Link>
+              </>
+            ) : (
+              <>
+                <Link to="/login">Login</Link>
+                <Link to="/register">Register</Link>
+              </>
+            )}
             <a href="#about">Privacy Policy</a>
           </div>
+
           <div className="copyright">
             <p>R.P.Y</p>
             &copy; {new Date().getFullYear()} DhanaSethu. All rights reserved.
