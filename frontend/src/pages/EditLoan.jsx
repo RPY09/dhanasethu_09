@@ -11,7 +11,18 @@ const EditLoan = () => {
   const navigate = useNavigate();
   const { showAlert } = useAlert();
   const [quickDuration, setQuickDuration] = useState(null);
-  const [form, setForm] = useState(null);
+  const [form, setForm] = useState({
+    person: "",
+    contact: "",
+    role: "lent",
+    amount: "",
+    interestRate: "",
+    interestType: "simple",
+    startDate: "",
+    endDate: "",
+    note: "",
+  });
+
   const [loading, setLoading] = useState(true);
   // New state to track the submission process
   const [submitting, setSubmitting] = useState(false);

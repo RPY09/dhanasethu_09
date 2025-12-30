@@ -286,7 +286,6 @@ The loan has been fully settled.
     const dueDate = new Date(loan.dueDate).toLocaleDateString("en-IN", {
       day: "2-digit",
       month: "short",
-      month: "short",
       year: "numeric",
     });
 
@@ -446,6 +445,7 @@ Thank you.`;
                         async () => {
                           await deleteLoan(selectedLoan._id);
                           fetchLoans();
+                          window.dispatchEvent(new Event("loans:changed"));
                           setShowSettleModal(false);
                           showAlert("Loan deleted", "success");
                         }
