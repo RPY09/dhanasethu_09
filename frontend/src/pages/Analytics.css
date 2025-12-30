@@ -136,7 +136,36 @@ select {
   text-transform: uppercase;
   margin-bottom: 16px;
 }
+.headerselect {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px; /* Consistent spacing below header */
+}
 
+.chart-card h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary);
+  text-transform: uppercase;
+}
+
+.pie-section select {
+  background: var(--card-bg);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+  cursor: pointer;
+  outline: none;
+}
+
+.pie-section select:focus {
+  border-color: var(--accent);
+}
 .pie-section {
   display: flex;
   flex-direction: column;

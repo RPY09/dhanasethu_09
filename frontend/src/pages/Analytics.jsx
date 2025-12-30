@@ -612,23 +612,14 @@ const Analytics = () => {
         </div>
 
         <div className="chart-card">
-          <div
-            className="headerselect"
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "15px",
-            }}
-          >
-            <h3 style={{ margin: 0 }}>Category Breakdown</h3>
+          <div className="headerselect">
+            <h3>Category Breakdown</h3>
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              style={{ padding: "4px 8px", fontSize: "12px" }}
             >
-              <option value="expense">Expenses</option>
-              <option value="income">Income</option>
+              <option value="expense">Expenses Only</option>
+              <option value="income">Income Only</option>
             </select>
           </div>
 
@@ -665,24 +656,15 @@ const Analytics = () => {
           </div>
         </div>
         <div className="chart-card">
-          <div
-            className="headerselect"
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "15px",
-            }}
-          >
-            <h3 style={{ margin: 0 }}>Investment Breakdown</h3>
+          <div className="headerselect">
+            <h3>Investment Breakdown</h3>
             <select
               value={investPaymentFilter}
               onChange={(e) => setInvestPaymentFilter(e.target.value)}
-              style={{ padding: "4px 8px", fontSize: "12px" }}
             >
               <option value="all">All Modes</option>
-              <option value="online">Online</option>
-              <option value="cash">Cash</option>
+              <option value="online">Online Only</option>
+              <option value="cash">Cash Only</option>
             </select>
           </div>
 
@@ -716,20 +698,11 @@ const Analytics = () => {
           </div>
         </div>
         <div className="chart-card">
-          <div
-            className="headerselect"
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "15px",
-            }}
-          >
-            <h3 style={{ margin: 0 }}>Loan Analysis</h3>
+          <div className="headerselect">
+            <h3>Loan Analysis</h3>
             <select
               value={loanViewMode}
               onChange={(e) => setLoanViewMode(e.target.value)}
-              style={{ padding: "4px 8px", fontSize: "12px" }}
             >
               <option value="principal">Principal Flow</option>
               <option value="interest">Profit & Loss (Interest)</option>
