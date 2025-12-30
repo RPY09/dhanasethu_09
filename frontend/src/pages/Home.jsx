@@ -113,13 +113,14 @@ const Home = () => {
           <div className="footer-logo">
             Dhana<span>Sethu</span>
           </div>
-          <p>The bridge to your financial clarity.</p>
+          <p>Your Financial Bridge.</p>
           <div className="footer-links">
             <Link to="/login">Login</Link>
             <Link to="/register">Register</Link>
             <a href="#about">Privacy Policy</a>
           </div>
           <div className="copyright">
+            <p>R.P.Y</p>
             &copy; {new Date().getFullYear()} DhanaSethu. All rights reserved.
           </div>
         </div>
