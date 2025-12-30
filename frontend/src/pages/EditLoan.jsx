@@ -10,7 +10,7 @@ const EditLoan = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { showAlert } = useAlert();
-
+  const [quickDuration, setQuickDuration] = useState(null);
   const [form, setForm] = useState(null);
   const [loading, setLoading] = useState(true);
   // New state to track the submission process
@@ -54,46 +54,66 @@ const EditLoan = () => {
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
+  const addDurationToDate = (start, type) => {
+    const d = new Date(start);
+    if (type === "month") d.setMonth(d.getMonth() + 1);
+    if (type === "year") d.setFullYear(d.getFullYear() + 1);
+    return d.toISOString().split("T")[0];
+  };
 
-  // ... (calculateMonths logic remains the same)
+  const calculateMonths = (start, end) => {
+    if (!start || !end) return 0;
+    const s = new Date(start);
+    const e = new Date(end);
+    let months =
+      (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth());
+    if (e.getDate() > s.getDate()) months += 1;
+    return Math.max(months, 1);
+  };
+
+  const calculateYears = (start, end) => {
+    const s = new Date(start);
+    const e = new Date(end);
+    let years = e.getFullYear() - s.getFullYear();
+    if (
+      e.getMonth() < s.getMonth() ||
+      (e.getMonth() === s.getMonth() && e.getDate() < s.getDate())
+    ) {
+      years -= 1;
+    }
+    return Math.max(years, 1);
+  };
 
   const interestAmount = useMemo(() => {
-    // ... (interestAmount logic remains the same)
-    const p = Number(form?.amount);
-    const r = Number(form?.interestRate);
+    const p = Number(form.amount);
+    const r = Number(form.interestRate);
 
-    if (!p || !r || !form?.startDate || !form?.endDate) return 0;
+    if (!p || !r || !form.startDate || !form.endDate) return 0;
 
-    const months = ((start, end) => {
-      const s = new Date(start);
-      const e = new Date(end);
-      let m =
-        (e.getFullYear() - s.getFullYear()) * 12 +
-        (e.getMonth() - s.getMonth());
-      if (e.getDate() > s.getDate()) m += 1;
-      return Math.max(m, 1);
-    })(form.startDate, form.endDate);
+    // Always calculate both, then choose based on the toggle
+    const months = calculateMonths(form.startDate, form.endDate);
+    const years = calculateYears(form.startDate, form.endDate);
+
+    // If quickDuration is null (initial state), default to months
+    const selectedUnit = quickDuration === "year" ? "year" : "month";
+    const timePeriod = selectedUnit === "year" ? years : months;
 
     if (form.interestType === "simple") {
-      if (months >= 12) {
-        const years = months / 12;
-        return Number(((p * r * years) / 100).toFixed(2));
-      }
-      return Number(((p * r * months) / 100).toFixed(2));
+      return Number(((p * r * timePeriod) / 100).toFixed(2));
     }
 
     if (form.interestType === "monthly") {
-      const total = p * Math.pow(1 + r / 100, months);
-      return Number((total - p).toFixed(2));
+      return Number((p * Math.pow(1 + r / 100, timePeriod) - p).toFixed(2));
     }
 
     return 0;
   }, [
-    form?.amount,
-    form?.interestRate,
-    form?.startDate,
-    form?.endDate,
-    form?.interestType,
+    form.amount,
+    form.interestRate,
+    form.startDate,
+    form.endDate,
+    form.interestType,
+    quickDuration,
   ]);
 
   const totalAmount = Number(form?.amount || 0) + Number(interestAmount || 0);
@@ -161,13 +181,6 @@ const EditLoan = () => {
 
           <div className="row">
             <div className="input-group">
-              <label>Type</label>
-              <select name="role" value={form.role} onChange={handleChange}>
-                <option value="lent">I Lent</option>
-                <option value="borrowed">I Borrowed</option>
-              </select>
-            </div>
-            <div className="input-group">
               <label>Principal Amount</label>
               <input
                 type="number"
@@ -177,9 +190,6 @@ const EditLoan = () => {
                 required
               />
             </div>
-          </div>
-
-          <div className="row">
             <div className="input-group">
               <label>Interest %</label>
               <input
@@ -188,6 +198,16 @@ const EditLoan = () => {
                 value={form.interestRate}
                 onChange={handleChange}
               />
+            </div>
+          </div>
+
+          <div className="row">
+            <div className="input-group">
+              <label>Type</label>
+              <select name="role" value={form.role} onChange={handleChange}>
+                <option value="lent">I Lent</option>
+                <option value="borrowed">I Borrowed</option>
+              </select>
             </div>
             <div className="input-group">
               <label>Interest Type</label>
@@ -206,20 +226,58 @@ const EditLoan = () => {
             <div className="input-group">
               <label>Start Date</label>
               <input
+                className="dates"
                 type="date"
                 name="startDate"
                 value={form.startDate}
                 onChange={handleChange}
               />
             </div>
-            <div className="input-group">
-              <label>End Date</label>
+            {/* End Date Section */}
+            <div className="input-group date-group">
+              <div className="date-header">
+                <label>End Date</label>
+                {/* The toggle is now positioned absolutely relative to this header */}
+                <div className="duration-toggle">
+                  <div
+                    className={`toggle-slider ${quickDuration === "year" ? "slide-right" : "slide-left"}`}
+                  />
+                  <button
+                    type="button"
+                    className={`toggle-btn ${quickDuration === "month" ? "active" : ""}`}
+                    onClick={() => {
+                      setQuickDuration("month");
+                      setForm((f) => ({
+                        ...f,
+                        endDate: addDurationToDate(f.startDate, "month"),
+                      }));
+                    }}
+                  >
+                    M
+                  </button>
+                  <button
+                    type="button"
+                    className={`toggle-btn ${quickDuration === "year" ? "active" : ""}`}
+                    onClick={() => {
+                      setQuickDuration("year");
+                      setForm((f) => ({
+                        ...f,
+                        endDate: addDurationToDate(f.startDate, "year"),
+                      }));
+                    }}
+                  >
+                    Y
+                  </button>
+                </div>
+              </div>
+
               <input
+                className="dates"
                 type="date"
                 name="endDate"
                 value={form.endDate}
-                onChange={handleChange}
                 required
+                onChange={handleChange}
               />
             </div>
           </div>
