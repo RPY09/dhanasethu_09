@@ -196,7 +196,7 @@ body {
 .zira-logo-container {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 5px;
   cursor: pointer;
   position: relative;
   height: 40px; /* Constrains the vertical space used by the logo area */
@@ -212,9 +212,9 @@ body {
 }
 
 .app-logo-img {
-  height: 100px;
-  width: auto;
-  margin-top: 10px;
+  height: 30px;
+  width: 69px;
+  /* margin-top: 10px; */
   object-fit: contain;
   transform: translateY(
     -2px
