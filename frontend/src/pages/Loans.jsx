@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { addLoan } from "../api/loan.api";
 import { useNavigate } from "react-router-dom";
 import { useAlert } from "../components/Alert/AlertContext";
+import { useCurrency } from "../context/CurrencyContext";
 
 import "./Loans.css";
 
@@ -11,6 +12,8 @@ const Loans = () => {
   const { showAlert } = useAlert();
   const [quickDuration, setQuickDuration] = useState(null);
   const [loading, setLoading] = useState(false);
+  const { baseSymbol, baseCurrency, baseCountry } = useCurrency();
+
   const [form, setForm] = useState({
     person: "",
     contact: "",
@@ -157,11 +160,11 @@ const Loans = () => {
 
           <div className="row">
             <div className="input-group">
-              <label>Principal (₹)</label>
+              <label>Principal ({baseCurrency})</label>
               <input
                 type="number"
                 name="amount"
-                placeholder="0"
+                placeholder={`${baseSymbol}0`}
                 required
                 onChange={handleChange}
               />
@@ -260,11 +263,15 @@ const Loans = () => {
           <div className="loan-summary">
             <div className="summary-item">
               <span>Interest</span>
-              <strong>₹ {interestAmount}</strong>
+              <strong>
+                {baseSymbol} {interestAmount}
+              </strong>
             </div>
             <div className="summary-item total">
               <span>Total Due</span>
-              <strong>₹ {totalAmount}</strong>
+              <strong>
+                {baseSymbol} {totalAmount}
+              </strong>
             </div>
           </div>
 

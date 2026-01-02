@@ -3,12 +3,14 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { updateTransaction } from "../api/transaction.api";
 import { useAlert } from "../components/Alert/AlertContext";
+import { useCurrency } from "../context/CurrencyContext";
 
 import "./AddTransaction.css";
 
 const EditTransaction = () => {
   const { state } = useLocation();
   const { showAlert } = useAlert();
+  const { baseSymbol, baseCurrency, baseCountry } = useCurrency();
 
   const { id } = useParams();
   const [submitting, setSubmitting] = useState(false);
@@ -56,12 +58,12 @@ const EditTransaction = () => {
         <form onSubmit={handleSubmit} className="modern-form">
           {/* Row 1: Amount */}
           <div className="input-group">
-            <label>Amount (INR)</label>
+            <label>Amount ({baseCurrency})</label>
             <div className="main-input-wrap">
               <input
                 type="number"
                 name="amount"
-                placeholder="0"
+                placeholder={`${baseSymbol}0`}
                 value={form.amount}
                 required
                 onChange={handleChange}

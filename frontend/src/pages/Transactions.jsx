@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getTransactionTypes } from "../api/transaction.api";
 import { useAlert } from "../components/Alert/AlertContext";
 import "./Transactions.css";
+import { useCurrency } from "../context/CurrencyContext";
 
 const DEFAULT_LIMIT = 20;
 
@@ -47,6 +48,7 @@ const Transactions = () => {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const { showAlert } = useAlert();
+  const { symbol, convert } = useCurrency();
 
   // Filters & Sort
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -173,14 +175,18 @@ const Transactions = () => {
     showAlert(
       "Are you sure? This transaction will be removed permanently.",
       "error",
-      true, // isDelete
+      true,
       async () => {
-        // This code only runs if the user clicks "Delete" in the custom modal
         try {
           await deleteTransaction(id);
           showAlert("Transaction deleted", "success");
-          window.dispatchEvent(new Event("transactions:changed"));
-          loadPage(1, true);
+          setTransactions([]);
+          setPage(1);
+          setHasMore(true);
+          loadPage(1, true, {
+            month: selectedMonth,
+            year: selectedYear,
+          });
         } catch (err) {
           showAlert("Failed to delete", "error");
         }
@@ -315,9 +321,10 @@ const Transactions = () => {
               </div>
               <div className="tx-card-right">
                 <span className={`tx-amount ${t.type}`}>
-                  {(t.type || "").toLowerCase() === "income" ? "+" : "-"}₹
-                  {parseAmount(t.amount).toLocaleString()}
+                  {(t.type || "").toLowerCase() === "income" ? "+" : "-"}
+                  {symbol} {convert(parseAmount(t.amount)).toLocaleString()}
                 </span>
+
                 <div className="tx-actions">
                   {/* Edit allowed only for non-loan & non-borrow */}
                   {t.paymentMode !== "loan" && t.paymentMode !== "borrow" && (

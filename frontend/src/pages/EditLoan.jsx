@@ -3,12 +3,15 @@ import { motion } from "framer-motion";
 import { useNavigate, useParams } from "react-router-dom";
 import { getLoans, updateLoan } from "../api/loan.api";
 import { useAlert } from "../components/Alert/AlertContext";
+import { useCurrency } from "../context/CurrencyContext";
 
 import "./Loans.css";
 
 const EditLoan = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { baseSymbol, baseCurrency } = useCurrency();
+
   const { showAlert } = useAlert();
   const [quickDuration, setQuickDuration] = useState(null);
   const [form, setForm] = useState({
@@ -296,11 +299,15 @@ const EditLoan = () => {
           <div className="loan-summary">
             <div>
               <span>Interest</span>
-              <strong>₹ {interestAmount}</strong>
+              <strong>
+                {baseSymbol} {interestAmount}
+              </strong>
             </div>
             <div>
               <span>Total Amount</span>
-              <strong>₹ {totalAmount}</strong>
+              <strong>
+                {baseSymbol} {totalAmount}
+              </strong>
             </div>
           </div>
 

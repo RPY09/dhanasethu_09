@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { addTransaction } from "../api/transaction.api";
 import { useAlert } from "../components/Alert/AlertContext";
+import { useCurrency } from "../context/CurrencyContext";
 
 import "./AddTransaction.css";
 
 const AddTransaction = () => {
   const navigate = useNavigate();
   const { showAlert } = useAlert();
+  const { baseSymbol, baseCurrency, baseCountry } = useCurrency();
 
   const [loading, setLoading] = useState(false);
   const today = new Date().toISOString().split("T")[0];
@@ -62,12 +64,12 @@ const AddTransaction = () => {
 
         <form onSubmit={handleSubmit} className="modern-form">
           <div className="input-group">
-            <label>Amount (INR)</label>
+            <label>Amount ({baseCurrency})</label>
             <div className="main-input-wrap">
               <input
                 type="number"
                 name="amount"
-                placeholder="₹0.00"
+                placeholder={`${baseSymbol}0.00`}
                 value={form.amount}
                 required
                 onChange={handleChange}

@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import appIcon from "../assets/dhanasethuIconWithName.png";
 import "./Home.css";
+// import { useCurrency } from "../context/CurrencyContext";
 
 const Home = () => {
   const isLoggedIn = Boolean(localStorage.getItem("token"));

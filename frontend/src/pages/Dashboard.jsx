@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import { getTransactions } from "../api/transaction.api";
 import { getLoanSummary } from "../api/loan.api";
 import { useAlert } from "../components/Alert/AlertContext";
+import { useCurrency } from "../context/CurrencyContext";
+import CountryCurrencyDropdown from "../components/CountryCurrencyDropdown";
 
 import "./Dashboard.css";
 
@@ -22,6 +24,9 @@ const detectPaymentMode = (t = {}) => {
 const Dashboard = () => {
   const [transactions, setTransactions] = useState([]);
   const { showAlert } = useAlert();
+  const { convert, displayCountry, displayCurrency, symbol } = useCurrency();
+
+  const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
 
   const [loanSummary, setLoanSummary] = useState({
     lent: 0,
@@ -155,23 +160,45 @@ const Dashboard = () => {
       </header>
 
       <motion.div className="tx-primary-card" whileHover={{ scale: 1.01 }}>
-        <div className="tx-balance-label">OVERALL BALANCE</div>
-        <div className="tx-balance-amount">₹{formatCurrency(balance)}</div>
+        <div className="tx-balance-label">
+          <span>OVERALL BALANCE</span>
+          <motion.div
+            className="currency-trigger"
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowCurrencyDropdown(true)}
+          >
+            <img
+              src={`https://flagcdn.com/w40/${displayCountry.toLowerCase()}.png`}
+              alt={displayCountry}
+              className="currency-flag-img"
+            />
+            <i className="bi bi-chevron-down flag-chevron"></i>
+          </motion.div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <span className="tx-balance-amount">
+            {symbol} {formatCurrency(convert(balance))}
+          </span>
+        </div>
 
         <div className="tx-monthly-grid">
           <div className="tx-month-stat">
             <span>Monthly Income</span>
-            <strong className="income">₹{formatCurrency(monthlyIncome)}</strong>
+            <strong className="income">
+              {symbol} {formatCurrency(convert(monthlyIncome))}
+            </strong>
           </div>
           <div className="tx-month-stat">
             <span>Expenses</span>
             <strong className="expense">
-              ₹{formatCurrency(monthlyExpense)}
+              {symbol} {formatCurrency(convert(monthlyExpense))}
             </strong>
           </div>
           <div className="tx-month-stat">
             <span>Invested</span>
-            <strong className="invest">₹{formatCurrency(monthlyInvest)}</strong>
+            <strong className="invest">
+              {symbol} {formatCurrency(convert(monthlyInvest))}
+            </strong>
           </div>
         </div>
       </motion.div>
@@ -179,25 +206,29 @@ const Dashboard = () => {
       <div className="txs-controls" style={{ marginBottom: "24px" }}>
         <div className="tx-mini-card">
           <span className="tx-meta">CASH BALANCE</span>
-          <span className="tx-category">₹{formatCurrency(cashBalance)}</span>
+          <span className="tx-category">
+            {symbol} {formatCurrency(convert(cashBalance))}
+          </span>
         </div>
         <div className="tx-mini-card">
           <span className="tx-meta">BANK BALANCE</span>
-          <span className="tx-category">₹{formatCurrency(bankBalance)}</span>
+          <span className="tx-category">
+            {symbol} {formatCurrency(convert(bankBalance))}
+          </span>
         </div>
       </div>
       <div className="txs-controls" style={{ marginBottom: "24px" }}>
         <div className="tx-mini-card">
           <span className="tx-meta">LOANS GIVEN</span>
           <span className="tx-category">
-            ₹{formatCurrency(loanSummary.lent)}
+            {symbol} {formatCurrency(convert(loanSummary.lent))}
           </span>
         </div>
 
         <div className="tx-mini-card">
           <span className="tx-meta">BORROWED</span>
           <span className="tx-category">
-            ₹{formatCurrency(loanSummary.borrowed)}
+            {symbol} {formatCurrency(convert(loanSummary.borrowed))}
           </span>
         </div>
       </div>
@@ -221,13 +252,22 @@ const Dashboard = () => {
                 </div>
               </div>
               <span className={`tx-amount ${t.type}`}>
-                {(t.type || "").toLowerCase() === "income" ? "+" : "-"}₹
-                {parseNumber(t.amount).toLocaleString()}
+                {(t.type || "").toLowerCase() === "income" ? "+" : "-"}
+                {symbol} {formatCurrency(convert(parseNumber(t.amount)))}
               </span>
             </div>
           ))}
         </div>
       </section>
+      {showCurrencyDropdown && (
+        <div className="currency-overlay">
+          <div className="currency-modal" onClick={(e) => e.stopPropagation()}>
+            <CountryCurrencyDropdown
+              onClose={() => setShowCurrencyDropdown(false)}
+            />
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 };

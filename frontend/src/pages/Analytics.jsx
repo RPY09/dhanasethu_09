@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getTransactions } from "../api/transaction.api";
 import { motion } from "framer-motion";
 import { useAlert } from "../components/Alert/AlertContext";
+import { useCurrency } from "../context/CurrencyContext";
 
 import {
   BarChart,
@@ -62,6 +63,8 @@ const Analytics = () => {
   const [paymentFilter, setPaymentFilter] = useState("income");
   const [categoryFilter, setCategoryFilter] = useState("expense");
   const [investPaymentFilter, setInvestPaymentFilter] = useState("all");
+  const { symbol, convert } = useCurrency();
+
   const { showAlert } = useAlert();
 
   const [loanViewMode, setLoanViewMode] = useState("principal"); // "principal" | "interest"
@@ -454,46 +457,58 @@ const Analytics = () => {
       <div className="analytics-stats-grid">
         <div className="stat-card">
           <span>Total Income</span>
-          <h3 className="income-text">₹{formatCurrency(totalIncome)}</h3>
+          <h3 className="income-text">
+            {symbol} {formatCurrency(convert(totalIncome))}
+          </h3>
         </div>
         <div className="stat-card">
           <span>Total Expense</span>
-          <h3 className="expense-text">₹{formatCurrency(totalExpense)}</h3>
+          <h3 className="expense-text">
+            {symbol} {formatCurrency(convert(totalExpense))}
+          </h3>
         </div>
         <div className="stat-card">
           <span>Investments</span>
           <h3 className="investment-text">
-            ₹{formatCurrency(totalInvestment)}
+            {symbol} {formatCurrency(convert(totalInvestment))}
           </h3>
         </div>
         <div className="stat-card primary-card">
           <span>Net Balance</span>
-          <h3>₹{formatCurrency(balance)}</h3>
+          <h3>
+            {symbol} {formatCurrency(convert(balance))}
+          </h3>
         </div>
       </div>
       {/* LOAN & BORROW ANALYTICS */}
       <div className="analytics-stats-grid">
         <div className="stat-card">
           <span>Loan Principal Received</span>
-          <h3>₹{formatCurrency(loanStats.loanPrincipalReceived)}</h3>
+          <h3>
+            {symbol} {formatCurrency(convert(loanStats.loanPrincipalReceived))}
+          </h3>
         </div>
 
         <div className="stat-card">
           <span>Loan Interest Earned</span>
-          <h3>₹{formatCurrency(loanStats.loanInterestReceived)}</h3>
+          <h3>
+            {symbol} {formatCurrency(convert(loanStats.loanInterestReceived))}
+          </h3>
         </div>
 
         <div className="stat-card">
           <span>Total Borrow Repaid</span>
-          <h3>₹{formatCurrency(loanStats.borrowTotalPaid)}</h3>
+          <h3>
+            {symbol} {formatCurrency(convert(loanStats.borrowTotalPaid))}
+          </h3>
         </div>
 
         <div className="stat-card primary-card">
           <span>Net Loan Gain</span>
           <h3>
-            ₹
+            {symbol}
             {formatCurrency(
-              loanStats.loanTotalReceived - loanStats.borrowTotalPaid
+              convert(loanStats.loanTotalReceived - loanStats.borrowTotalPaid)
             )}
           </h3>
         </div>
@@ -767,11 +782,13 @@ const Analytics = () => {
                       : "#EF4444",
                 }}
               >
-                ₹
+                {symbol}
                 {formatCurrency(
-                  Math.abs(
-                    loanStats.loanInterestReceived -
-                      loanStats.borrowInterestPaid
+                  convert(
+                    Math.abs(
+                      loanStats.loanInterestReceived -
+                        loanStats.borrowInterestPaid
+                    )
                   )
                 )}
               </span>
@@ -794,10 +811,22 @@ const Analytics = () => {
             {monthlySummaries.map((m, i) => (
               <div key={i} className="stat-card" style={{ padding: 10 }}>
                 <strong>{m.monthName}</strong>
-                <div>Income: ₹{formatCurrency(m.income)}</div>
-                <div>Expense: ₹{formatCurrency(m.expense)}</div>
-                <div>Investment: ₹{formatCurrency(m.investment)}</div>
-                <div>Balance: ₹{formatCurrency(m.balance)}</div>
+                <div>
+                  Income: {symbol}
+                  {formatCurrency(convert(m.income))}
+                </div>
+                <div>
+                  Expense: {symbol}
+                  {formatCurrency(convert(m.expense))}
+                </div>
+                <div>
+                  Investment: {symbol}
+                  {formatCurrency(convert(m.investment))}
+                </div>
+                <div>
+                  Balance: {symbol}
+                  {formatCurrency(convert(m.balance))}
+                </div>
               </div>
             ))}
           </div>
@@ -824,10 +853,22 @@ const Analytics = () => {
             {weeklySummaries.map((w, i) => (
               <div key={i} className="stat-card" style={{ padding: 10 }}>
                 <strong>{w.label}</strong>
-                <div>Income: ₹{formatCurrency(w.income)}</div>
-                <div>Expense: ₹{formatCurrency(w.expense)}</div>
-                <div>Investment: ₹{formatCurrency(w.investment)}</div>
-                <div>Balance: ₹{formatCurrency(w.balance)}</div>
+                <div>
+                  Income: {symbol}
+                  {formatCurrency(convert(w.income))}
+                </div>
+                <div>
+                  Expense: {symbol}
+                  {formatCurrency(convert(w.expense))}
+                </div>
+                <div>
+                  Investment: {symbol}
+                  {formatCurrency(convert(w.investment))}
+                </div>
+                <div>
+                  Balance: {symbol}
+                  {formatCurrency(convert(w.balance))}
+                </div>
               </div>
             ))}
           </div>

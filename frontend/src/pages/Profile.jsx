@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAlert } from "../components/Alert/AlertContext";
@@ -21,10 +21,16 @@ const Profile = () => {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [countries, setCountries] = useState([]);
+  const [countrySearch, setCountrySearch] = useState("");
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
 
   const [formData, setFormData] = useState({
     name: user.name || "",
     number: user.number || "",
+    country: user.country || "IN",
+    baseCurrency: user.baseCurrency || "INR",
+    timezone: user.timezone || "",
   });
 
   const [pwdData, setPwdData] = useState({ otp: "", newPassword: "" });
@@ -33,6 +39,42 @@ const Profile = () => {
     localStorage.clear();
     navigate("/login");
   };
+  useEffect(() => {
+    fetch("https://restcountries.com/v3.1/all?fields=name,cca2,currencies,flag")
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error("Failed to fetch countries");
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (!Array.isArray(data)) {
+          throw new Error("Invalid country data");
+        }
+
+        const formatted = data
+          .filter((c) => c.currencies && c.cca2)
+          .map((c) => ({
+            name: c.name.common,
+            code: c.cca2,
+            currency: Object.keys(c.currencies)[0],
+            flag: c.flag,
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name));
+
+        setCountries(formatted);
+      })
+      .catch((err) => {
+        console.error("Country fetch error:", err);
+        setCountries([]);
+      });
+  }, []);
+
+  const filteredCountries = countries.filter((c) =>
+    `${c.name} ${c.currency}`
+      .toLowerCase()
+      .includes(countrySearch.toLowerCase())
+  );
 
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
@@ -40,6 +82,8 @@ const Profile = () => {
       const res = await updateProfile(formData);
       const updatedUser = res.data.user;
       localStorage.setItem("user", JSON.stringify(updatedUser));
+      window.dispatchEvent(new Event("profile:updated"));
+
       setUser(updatedUser);
       setIsEditing(false);
       showAlert("Profile updated!", "success");
@@ -120,13 +164,86 @@ const Profile = () => {
               className={!isEditing ? "readonly-input" : ""}
             />
           </div>
+          {isEditing && (
+            <div className="input-group">
+              <label>Country</label>
+
+              <input
+                type="text"
+                placeholder="Search country or currency"
+                value={countrySearch}
+                onFocus={(e) => {
+                  e.target.select();
+                  setShowCountryDropdown(true);
+                }}
+                onChange={(e) => setCountrySearch(e.target.value)}
+              />
+
+              {showCountryDropdown && (
+                <div
+                  style={{
+                    maxHeight: "220px",
+                    overflowY: "auto",
+                    border: "1px solid #ddd",
+                    borderRadius: "12px",
+                    marginTop: "6px",
+                    background: "#fff",
+                    zIndex: 10,
+                  }}
+                >
+                  {filteredCountries.length ? (
+                    filteredCountries.map((c) => (
+                      <div
+                        key={c.code}
+                        style={{
+                          padding: "10px",
+                          cursor: "pointer",
+                          display: "flex",
+                          gap: "8px",
+                        }}
+                        onClick={() => {
+                          setFormData({
+                            ...formData,
+                            country: c.code,
+                            baseCurrency: c.currency,
+                          });
+
+                          setCountrySearch(`${c.flag} ${c.name}`);
+                          setShowCountryDropdown(false);
+                        }}
+                      >
+                        <span>{c.flag}</span>
+                        <span>{c.name}</span>
+                        <span style={{ marginLeft: "auto", opacity: 0.6 }}>
+                          {c.currency}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ padding: "10px", opacity: 0.6 }}>
+                      No country found
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+          <div className="input-group">
+            <label>Currency</label>
+            <input value={formData.baseCurrency || ""} disabled />
+          </div>
 
           <div className="profile-actions">
             {!isEditing ? (
               <button
                 type="button"
                 className="edit-btn"
-                onClick={() => setIsEditing(true)}
+                onClick={() => {
+                  setCountrySearch(
+                    `${formData.country} - ${formData.currency}`
+                  );
+                  setIsEditing(true);
+                }}
               >
                 Edit Profile
               </button>

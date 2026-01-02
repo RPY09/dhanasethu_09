@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { getLoans, settleLoan, deleteLoan } from "../api/loan.api";
 import { useAlert } from "../components/Alert/AlertContext";
+import { useCurrency } from "../context/CurrencyContext";
 
 import "./Notifications.css";
 
@@ -12,6 +13,7 @@ const Notifications = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { showAlert } = useAlert();
+  const { symbol, convert } = useCurrency();
 
   const [loans, setLoans] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -171,6 +173,7 @@ const Notifications = () => {
       hour12: true,
     });
   };
+  const money = (val) => `${symbol}${convert(val).toLocaleString()}`;
 
   const sendWhatsAppMessage = (loan, paidAmount, type) => {
     if (!loan?.contact) return;
@@ -196,9 +199,9 @@ const Notifications = () => {
 
 ===== Date & Time: ${timestamp} =====
 
-• Remaining Interest: ₹${remainingInterest}
-• Remaining Principal: ₹${remainingPrincipal}
-• Total Due: ₹${remainingTotal}
+• Remaining Interest: ${money(remainingInterest)}
+• Remaining Principal: ${money(remainingPrincipal)}
+• Total Due: ${money(remainingTotal)}
 
 Thank you.`;
       }
@@ -206,13 +209,13 @@ Thank you.`;
       if (type === "principal") {
         message = `Hello ${loan.person},
 
-₹${paid} principal payment paid to you.
+${money(paid)} principal payment paid to you.
 
 ===== Date & Time: ${timestamp} =====
 
-• Remaining Principal: ₹${remainingPrincipal}
-• Remaining Interest: ₹${remainingInterest}
-• Total Due: ₹${remainingTotal}
+• Remaining Principal: ${money(remainingPrincipal)}
+• Remaining Interest: ${money(remainingInterest)}
+• Total Due: ${money(remainingTotal)}
 
 Thank you.`;
       }
@@ -236,25 +239,25 @@ Thank you.`;
       if (type === "interest") {
         message = `Hello ${loan.person},
 
-₹${paid} interest payment recorded.
+${money(paid)} interest payment recorded.
 
 ===== Date & Time: ${timestamp} =====
 
-• Remaining Interest: ₹${remainingInterest}
-• Remaining Principal: ₹${remainingPrincipal}
-• Total Due: ₹${remainingTotal}`;
+• Remaining Interest: ${money(remainingInterest)}
+• Remaining Principal: ${money(remainingPrincipal)}
+• Total Due: ${money(remainingTotal)}`;
       }
 
       if (type === "principal") {
         message = `Hello ${loan.person},
 
-₹${paid} principal payment recorded.
+${money(paid)} principal payment recorded.
 
 ===== Date & Time: ${timestamp} =====
 
-• Remaining Principal: ₹${remainingPrincipal}
-• Remaining Interest: ₹${remainingInterest}
-• Total Due: ₹${remainingTotal}`;
+• Remaining Principal: ${money(remainingPrincipal)}
+• Remaining Interest: ${money(remainingInterest)}
+• Total Due: ${money(remainingTotal)}`;
       }
 
       if (type === "full") {
@@ -300,9 +303,9 @@ The loan has been fully settled.
 You have taken an amount of ₹${principalRemaining} on ${takenDate}.
 
 -> Current Loan Summary:
-• Principal Remaining: ₹${principalRemaining}
-• Interest Remaining: ₹${Math.max(interestRemaining, 0)}
-• Total Amount Due: ₹${totalRemaining}
+• Principal Remaining: ${money(principalRemaining)}
+• Interest Remaining: ${money(Math.max(interestRemaining, 0))}
+• Total Amount Due: ${money(totalRemaining)}
 
 -> Important Dates:
 • Due Date: ${dueDate}
@@ -386,7 +389,7 @@ Thank you.`;
                 <div className="card-info">
                   <span className="person-name">{loan.person}</span>
                   <span className="amount-text">
-                    ₹{getRemainingTotal(loan)}
+                    {symbol} {convert(getRemainingTotal(loan)).toLocaleString()}
                   </span>
                   <span className={`time-tag ${time.color}`}>{time.label}</span>
                 </div>

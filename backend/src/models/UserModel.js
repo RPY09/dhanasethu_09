@@ -24,7 +24,20 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    country: {
+      type: String,
+      default: "IN",
+    },
+    baseCurrency: {
+      type: String,
+      default: "INR",
+    },
+    timezone: {
+      type: String,
+      default: "Asia/Kolkata",
+    },
   },
+
   { timestamps: true }
 );
 
