@@ -15,6 +15,8 @@ const Register = () => {
     email: "",
     number: "",
     password: "",
+    securityQuestion: "",
+    securityAnswer: "",
   });
 
   const handleChange = (e) => {
@@ -74,6 +76,19 @@ const Register = () => {
             <input
               name="number"
               placeholder="Mobile Number"
+              onChange={handleChange}
+              required
+            />
+            <select name="securityQuestion" onChange={handleChange} required>
+              <option value="">Select a security question</option>
+              <option value="birth_city">What is your birth city?</option>
+              <option value="fav_number">What is your favorite number?</option>
+              <option value="school_name">What is your school name?</option>
+            </select>
+
+            <input
+              name="securityAnswer"
+              placeholder="Your Answer"
               onChange={handleChange}
               required
             />

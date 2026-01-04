@@ -9,6 +9,13 @@ const protect = require("../middlewares/authMiddleware");
 router.post("/register", authController.register);
 router.post("/login", authController.login);
 router.post("/forgot-password-request", authController.forgotPasswordRequest);
+router.post("/login-security", authController.loginWithSecurityAnswer);
+router.post(
+  "/reset-password-security",
+  authController.resetPasswordWithSecurity
+);
+router.post("/setup-security", protect, authController.setupSecurity);
+
 router.post("/login-otp", authController.loginViaOtp);
 router.post("/request-password-otp", authController.requestPasswordOtp);
 

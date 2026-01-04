@@ -11,46 +11,34 @@ const jwt = require("jsonwebtoken");
 
 exports.register = async (req, res) => {
   try {
-    const { name, email, number, password } = req.body;
+    const { name, email, number, password, securityQuestion, securityAnswer } =
+      req.body;
 
-    if (!name || !email || !password || !number) {
-      return res.status(400).json({ message: "All fields are required" });
+    if (!securityQuestion || !securityAnswer) {
+      return res.status(400).json({ message: "Security question required" });
     }
 
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({ message: "User already exists" });
-    }
+    const exists = await User.findOne({ email });
+    if (exists) return res.status(400).json({ message: "User exists" });
 
-    const location = await detectLocation(req);
     const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedAnswer = await bcrypt.hash(securityAnswer, 10);
 
     const user = await User.create({
       name,
       email,
       number,
       password: hashedPassword,
-      ...location,
+      securityQuestion,
+      securityAnswer: hashedAnswer,
     });
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
 
-    res.status(201).json({
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        number: user.number,
-        country: user.country,
-        currency: user.currency,
-        timezone: user.timezone,
-      },
-    });
+    res.status(201).json({ token, user });
   } catch (err) {
-    console.error("REGISTER ERROR:", err);
     res.status(500).json({ message: "Registration failed" });
   }
 };
@@ -87,6 +75,8 @@ exports.login = async (req, res) => {
       expiresIn: "7d",
     });
 
+    const needsSecuritySetup = !user.securityQuestion || !user.securityAnswer;
+
     res.json({
       token,
       user: {
@@ -97,11 +87,95 @@ exports.login = async (req, res) => {
         country: user.country,
         baseCurrency: user.baseCurrency,
         timezone: user.timezone,
+        needsSecuritySetup,
       },
     });
   } catch (err) {
     console.error("LOGIN ERROR:", err);
     res.status(500).json({ message: "Login failed" });
+  }
+};
+
+exports.loginWithSecurityAnswer = async (req, res) => {
+  try {
+    const { email, answer } = req.body;
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const match = await bcrypt.compare(answer, user.securityAnswer);
+    if (!match)
+      return res.status(400).json({ message: "Invalid security answer" });
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d",
+    });
+
+    res.json({ token, user });
+  } catch {
+    res.status(500).json({ message: "Security login failed" });
+  }
+};
+
+exports.resetPasswordWithSecurity = async (req, res) => {
+  try {
+    const { email, answer, newPassword } = req.body;
+
+    if (!email || !answer || !newPassword) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (!user.securityAnswer) {
+      return res
+        .status(400)
+        .json({ message: "Security not set up for this account" });
+    }
+
+    const ok = await bcrypt.compare(answer, user.securityAnswer);
+    if (!ok)
+      return res.status(400).json({ message: "Invalid security answer" });
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await User.updateOne(
+      { _id: user._id },
+      { $set: { password: hashedPassword } }
+    );
+
+    res.json({ message: "Password reset successful" });
+  } catch (err) {
+    console.error("RESET PASSWORD SECURITY ERROR:", err);
+    res.status(500).json({ message: "Password reset failed" });
+  }
+};
+
+exports.setupSecurity = async (req, res) => {
+  try {
+    const { securityQuestion, securityAnswer } = req.body;
+
+    if (!securityQuestion || !securityAnswer) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const hashedAnswer = await bcrypt.hash(securityAnswer, 10);
+
+    await User.updateOne(
+      { _id: req.user._id },
+      {
+        $set: {
+          securityQuestion,
+          securityAnswer: hashedAnswer,
+        },
+      }
+    );
+
+    res.json({ message: "Security setup completed successfully" });
+  } catch (err) {
+    console.error("SETUP SECURITY ERROR:", err);
+    res.status(500).json({ message: "Failed to setup security" });
   }
 };
 

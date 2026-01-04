@@ -13,6 +13,8 @@
     "@hookform/resolvers": "^5.2.2",
     "axios": "^1.13.2",
     "chart.js": "^4.5.1",
+    "crypto": "^1.0.1",
+    "crypto-js": "^4.2.0",
     "framer-motion": "^12.23.26",
     "react": "^19.2.0",
     "react-chartjs-2": "^5.3.1",

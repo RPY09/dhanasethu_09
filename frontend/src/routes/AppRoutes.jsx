@@ -1,8 +1,13 @@
 import { Routes, Route } from "react-router-dom";
+
 import Home from "../pages/Home";
 import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
+import SetupSecurity from "../pages/SetupSecurity";
+import AppLock from "../pages/AppLock";
+
 import ProtectedRoute from "../components/ProtectedRoute";
+
 import Dashboard from "../pages/Dashboard";
 import AddTransaction from "../pages/AddTransaction";
 import Transactions from "../pages/Transactions";
@@ -14,13 +19,32 @@ import Notifications from "../pages/Notifications";
 import EditLoan from "../pages/EditLoan";
 
 const AppRoutes = () => {
-  console.log("Routes rendered");
   return (
     <Routes>
+      {/* PUBLIC ROUTES */}
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
+      {/*SECURITY SETUP (LOGGED-IN ONLY) */}
+      <Route
+        path="/app-lock"
+        element={
+          <ProtectedRoute>
+            <AppLock />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/setup-security"
+        element={
+          <ProtectedRoute>
+            <SetupSecurity />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* PROTECTED ROUTES */}
       <Route
         path="/dashboard"
         element={
@@ -29,6 +53,7 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/profile"
         element={
@@ -37,6 +62,7 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+
       <Route
         path="/notifications"
         element={
@@ -45,6 +71,16 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+
+      <Route
+        path="/loan"
+        element={
+          <ProtectedRoute>
+            <Loan />
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path="/edit/:id"
         element={
@@ -89,16 +125,8 @@ const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
-      <Route
-        path="/loan"
-        element={
-          <ProtectedRoute>
-            <Loan />
-          </ProtectedRoute>
-        }
-      />
 
-      {/* Optional: fallback route */}
+      {/* FALLBACK */}
       <Route path="*" element={<Home />} />
     </Routes>
   );

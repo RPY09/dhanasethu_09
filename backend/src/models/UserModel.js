@@ -24,6 +24,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+
+    securityQuestion: { type: String },
+    securityAnswer: { type: String }, // hashed
+
     country: {
       type: String,
       default: "IN",

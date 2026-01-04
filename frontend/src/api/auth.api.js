@@ -26,3 +26,8 @@ export const forgotPasswordRequest = (data) =>
 
 // Login using OTP
 export const loginViaOtp = (data) => api.post("/auth/login-otp", data);
+export const loginWithSecurityAnswer = (data) =>
+  api.post("/auth/login-security", data);
+
+export const resetPasswordWithSecurity = (data) =>
+  api.post("/auth/reset-password-security", data);
