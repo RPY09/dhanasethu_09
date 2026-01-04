@@ -204,6 +204,74 @@ const Transactions = () => {
     return 0;
   });
 
+  const EmptyState = () => (
+    <div
+      style={{
+        marginTop: 60,
+        textAlign: "center",
+        color: "var(--text-muted)",
+      }}
+    >
+      <div
+        style={{
+          fontSize: 42,
+          marginBottom: 12,
+        }}
+      >
+        <i class="bi bi-mailbox-flag"></i>
+      </div>
+
+      <h3
+        style={{
+          fontSize: 18,
+          fontWeight: 800,
+          color: "var(--primary)",
+          marginBottom: 6,
+        }}
+      >
+        No transactions yet
+      </h3>
+
+      <p
+        style={{
+          fontSize: 14,
+          marginBottom: 20,
+        }}
+      >
+        Start by adding your first income or expense.
+      </p>
+
+      <button
+        className="tx-add-fab"
+        style={{
+          borderRadius: 14,
+          width: "auto",
+          height: "auto",
+          padding: "10px 18px",
+          fontSize: 14,
+        }}
+        onClick={() => navigate("/add-transaction")}
+      >
+        + Add Transaction
+      </button>
+    </div>
+  );
+
+  const SkeletonTransaction = () => (
+    <div className="tx-card skeleton-card">
+      <div className="tx-card-left">
+        <div className="skeleton skeleton-date"></div>
+        <div>
+          <div className="skeleton skeleton-text"></div>
+          <div className="skeleton skeleton-text sm"></div>
+        </div>
+      </div>
+      <div className="tx-card-right">
+        <div className="skeleton skeleton-amount"></div>
+      </div>
+    </div>
+  );
+
   return (
     <motion.div
       className="tx-wrapper"
@@ -229,127 +297,156 @@ const Transactions = () => {
       </header>
 
       <div className="tx-controls">
-        <div className="tx-select-group">
-          <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(Number(e.target.value))}
-          >
-            {Array.from({ length: 12 }).map((_, i) => (
-              <option key={i} value={i}>
-                {new Date(0, i).toLocaleString("default", { month: "short" })}
-              </option>
-            ))}
-          </select>
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(Number(e.target.value))}
-          >
-            {availableYears.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="sortingg">
-          <select
-            className="tx-sort-select"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-          >
-            <option value="newest">Newest First</option>
-            <option value="oldest">Oldest First</option>
-            <option value="amount-desc">Highest Amount</option>
-            <option value="amount-asc">Lowest Amount</option>
-          </select>
-          <select
-            className="tx-sort-select"
-            value={selectedType}
-            onChange={(e) => {
-              setSelectedType(e.target.value);
-              setTransactions([]);
-              setPage(1);
-              setHasMore(true);
-              loadPage(1, true);
-            }}
-          >
-            <option value="all">All Types</option>
+        {loading ? (
+          <>
+            <div className="tx-select-group">
+              <div className="skeleton skeleton-select"></div>
+              <div className="skeleton skeleton-select"></div>
+            </div>
+            <div className="tx-select-group">
+              <div className="skeleton skeleton-select"></div>
+              <div className="skeleton skeleton-select"></div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* TIME FILTERS */}
+            <div className="tx-select-group">
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              >
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <option key={i} value={i}>
+                    {new Date(0, i).toLocaleString("default", {
+                      month: "short",
+                    })}
+                  </option>
+                ))}
+              </select>
 
-            {types.map((t) => (
-              <option key={t} value={t}>
-                {t.charAt(0).toUpperCase() + t.slice(1)}
-              </option>
-            ))}
-          </select>
-        </div>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+              >
+                {availableYears.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* TYPE + SORT */}
+            <div className="tx-select-group">
+              <select
+                value={selectedType}
+                onChange={(e) => {
+                  setSelectedType(e.target.value);
+                  setTransactions([]);
+                  setPage(1);
+                  setHasMore(true);
+                  loadPage(1, true);
+                }}
+              >
+                <option value="all">All Transactions</option>
+                {types.map((t) => (
+                  <option key={t} value={t}>
+                    {t.charAt(0).toUpperCase() + t.slice(1)}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="amount-desc">Highest Amount</option>
+                <option value="amount-asc">Lowest Amount</option>
+              </select>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="tx-list" ref={containerRef}>
-        <AnimatePresence mode="popLayout">
-          {sortedTransactions.map((t, i) => (
-            <motion.div
-              layout
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              key={t._id || i}
-              className="tx-card"
-            >
-              <div className="tx-card-left">
-                <div className="tx-date-box">
-                  <span className="tx-day">{new Date(t.date).getDate()}</span>
-                  <span className="tx-month">
-                    {new Date(t.date).toLocaleString("default", {
-                      month: "short",
-                    })}
-                  </span>
+        {loading ? (
+          [...Array(6)].map((_, i) => <SkeletonTransaction key={i} />)
+        ) : sortedTransactions.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <AnimatePresence mode="popLayout">
+            {sortedTransactions.map((t, i) => (
+              <motion.div
+                layout
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                key={t._id || i}
+                className="tx-card"
+              >
+                <div className="tx-card-left">
+                  <div className="tx-date-box">
+                    <span className="tx-day">{new Date(t.date).getDate()}</span>
+                    <span className="tx-month">
+                      {new Date(t.date).toLocaleString("default", {
+                        month: "short",
+                      })}
+                    </span>
+                  </div>
+                  <div className="tx-info">
+                    <span className="tx-category">{t.category}</span>
+                    <span className="tx-meta">
+                      {t.paymentMode} • {t.type}
+                    </span>
+                    {t.note || t.notes || t.description ? (
+                      <div
+                        className="note"
+                        style={{ marginTop: 8, fontSize: 13 }}
+                      >
+                        {t.note || t.notes || t.description}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
-                <div className="tx-info">
-                  <span className="tx-category">{t.category}</span>
-                  <span className="tx-meta">
-                    {t.paymentMode} • {t.type}
+                <div className="tx-card-right">
+                  <span className={`tx-amount ${t.type}`}>
+                    {(t.type || "").toLowerCase() === "income" ? "+" : "-"}
+                    {symbol} {convert(parseAmount(t.amount)).toLocaleString()}
                   </span>
-                  {t.note || t.notes || t.description ? (
-                    <div
-                      className="note"
-                      style={{ marginTop: 8, fontSize: 13 }}
-                    >
-                      {t.note || t.notes || t.description}
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-              <div className="tx-card-right">
-                <span className={`tx-amount ${t.type}`}>
-                  {(t.type || "").toLowerCase() === "income" ? "+" : "-"}
-                  {symbol} {convert(parseAmount(t.amount)).toLocaleString()}
-                </span>
 
-                <div className="tx-actions">
-                  {/* Edit allowed only for non-loan & non-borrow */}
-                  {t.paymentMode !== "loan" && t.paymentMode !== "borrow" && (
-                    <button
-                      onClick={() =>
-                        navigate(`/edit-transaction/${t._id}`, { state: t })
-                      }
-                    >
-                      Edit
-                    </button>
-                  )}
-                  {!(
-                    (t.paymentMode === "loan" || t.paymentMode === "borrow") &&
-                    isSettlementTransaction(t)
-                  ) && (
-                    <button className="del" onClick={() => handleDelete(t._id)}>
-                      Delete
-                    </button>
-                  )}
+                  <div className="tx-actions">
+                    {/* Edit allowed only for non-loan & non-borrow */}
+                    {t.paymentMode !== "loan" && t.paymentMode !== "borrow" && (
+                      <button
+                        onClick={() =>
+                          navigate(`/edit-transaction/${t._id}`, { state: t })
+                        }
+                      >
+                        Edit
+                      </button>
+                    )}
+                    {!(
+                      (t.paymentMode === "loan" ||
+                        t.paymentMode === "borrow") &&
+                      isSettlementTransaction(t)
+                    ) && (
+                      <button
+                        className="del"
+                        onClick={() => handleDelete(t._id)}
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-        {loading && <div className="tx-loader">Updating list...</div>}
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        )}
+        {/* {loading && <div className="tx-loader">Updating list...</div>} */}
       </div>
     </motion.div>
   );

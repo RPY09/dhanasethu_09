@@ -14,6 +14,7 @@ const Notifications = () => {
   const location = useLocation();
   const { showAlert } = useAlert();
   const { symbol, convert } = useCurrency();
+  const [page, setPage] = useState(1);
 
   const [loans, setLoans] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -95,6 +96,9 @@ const Notifications = () => {
       }),
     [loans, activeTab, debouncedSearch]
   );
+  const paginatedLoans = useMemo(() => {
+    return filteredLoans.slice(0, page * ITEMS_PER_PAGE);
+  }, [filteredLoans, page]);
 
   /* ---------- ACTIONS ---------- */
   useEffect(() => {
@@ -105,6 +109,10 @@ const Notifications = () => {
       setPaidAmount(getRemainingPrincipal(selectedLoan));
     else setPaidAmount(getRemainingTotal(selectedLoan));
   }, [paymentType, selectedLoan]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [activeTab, debouncedSearch]);
 
   const handleInterestChange = (e) => {
     const valString = e.target.value;
@@ -342,6 +350,17 @@ Thank you.`;
     }
   };
 
+  const SkeletonNotification = () => (
+    <div className="notify-card skeleton-card">
+      <div className="card-info">
+        <div className="skeleton skeleton-name"></div>
+        <div className="skeleton skeleton-amount"></div>
+        <div className="skeleton skeleton-tag"></div>
+      </div>
+      <div className="skeleton skeleton-btn"></div>
+    </div>
+  );
+
   return (
     <motion.div
       className="notify-wrapper"
@@ -353,36 +372,55 @@ Thank you.`;
         <p>Your pending financial commitments</p>
       </header>
 
-      <div className="search-container">
-        <i className="bi bi-search"></i>
-        <input
-          type="text"
-          placeholder="Search name..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </div>
+      {loading ? (
+        <>
+          <div
+            className="skeleton skeleton-search"
+            style={{ marginBottom: 20 }}
+          ></div>
+          <div className="notify-tabs">
+            <div className="skeleton skeleton-tab"></div>
+            <div className="skeleton skeleton-tab"></div>
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="search-container">
+            <i className="bi bi-search"></i>
+            <input
+              type="text"
+              placeholder="Search name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
 
-      <div className="notify-tabs">
-        <button
-          className={activeTab === "lent" ? "active" : ""}
-          onClick={() => setActiveTab("lent")}
-        >
-          Lent
-        </button>
-        <button
-          className={activeTab === "borrowed" ? "active" : ""}
-          onClick={() => setActiveTab("borrowed")}
-        >
-          Borrowed
-        </button>
-      </div>
+          <div className="notify-tabs">
+            <button
+              className={activeTab === "lent" ? "active" : ""}
+              onClick={() => setActiveTab("lent")}
+            >
+              Lent
+            </button>
+            <button
+              className={activeTab === "borrowed" ? "active" : ""}
+              onClick={() => setActiveTab("borrowed")}
+            >
+              Borrowed
+            </button>
+          </div>
+        </>
+      )}
 
       <div className="notify-list">
         {loading ? (
-          <div className="spinner"></div>
+          [...Array(5)].map((_, i) => <SkeletonNotification key={i} />)
+        ) : filteredLoans.length === 0 ? (
+          <p style={{ textAlign: "center", color: "var(--text-muted)" }}>
+            No reminders found
+          </p>
         ) : (
-          filteredLoans.map((loan) => {
+          paginatedLoans.map((loan) => {
             const time = getTimeRemaining(loan.dueDate);
             return (
               <div key={loan._id} className="notify-card">
@@ -407,6 +445,23 @@ Thank you.`;
           })
         )}
       </div>
+      {!loading && paginatedLoans.length < filteredLoans.length && (
+        <button
+          style={{
+            margin: "20px auto",
+            display: "block",
+            padding: "10px 20px",
+            borderRadius: "14px",
+            border: "none",
+            background: "var(--primary)",
+            color: "white",
+            fontWeight: 700,
+          }}
+          onClick={() => setPage((p) => p + 1)}
+        >
+          Load More
+        </button>
+      )}
 
       <AnimatePresence>
         {showSettleModal && selectedLoan && (

@@ -320,3 +320,61 @@
     border-color: var(--accent);
   }
 }
+/* ===== Skeleton Loader ===== */
+.skeleton {
+  background: linear-gradient(90deg, #e6e6e6 25%, #f2f2f2 37%, #e6e6e6 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+  border-radius: 12px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+/* Search skeleton */
+.skeleton-search {
+  height: 48px;
+  width: 100%;
+  border-radius: 16px;
+}
+
+/* Tabs skeleton */
+.skeleton-tab {
+  height: 36px;
+  width: 100%;
+  border-radius: 10px;
+}
+
+/* Notification card skeleton */
+.notify-card.skeleton-card {
+  pointer-events: none;
+}
+
+.skeleton-name {
+  height: 16px;
+  width: 120px;
+  margin-bottom: 8px;
+}
+
+.skeleton-amount {
+  height: 14px;
+  width: 90px;
+  margin-bottom: 6px;
+}
+
+.skeleton-tag {
+  height: 14px;
+  width: 70px;
+}
+
+.skeleton-btn {
+  height: 38px;
+  width: 90px;
+  border-radius: 12px;
+}

@@ -64,6 +64,7 @@ const Analytics = () => {
   const [categoryFilter, setCategoryFilter] = useState("expense");
   const [investPaymentFilter, setInvestPaymentFilter] = useState("all");
   const { symbol, convert } = useCurrency();
+  const [loading, setLoading] = useState(true);
 
   const { showAlert } = useAlert();
 
@@ -83,6 +84,8 @@ const Analytics = () => {
       setTransactions(cleanedData);
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -399,6 +402,30 @@ const Analytics = () => {
     [monthlySummaries]
   );
 
+  const SkeletonStats = () => (
+    <div className="analytics-stats-grid">
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="stat-card">
+          <div className="skeleton skeleton-text"></div>
+          <div
+            className="skeleton skeleton-stat"
+            style={{ marginTop: 8 }}
+          ></div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const SkeletonChart = () => (
+    <div className="chart-card">
+      <div
+        className="skeleton skeleton-text"
+        style={{ marginBottom: 16 }}
+      ></div>
+      <div className="skeleton skeleton-chart"></div>
+    </div>
+  );
+
   return (
     <motion.div
       className="analytics-container"
@@ -410,392 +437,456 @@ const Analytics = () => {
           <h1>Analytics</h1>
           <p className="subtitle">Visualizing your financial flow</p>
         </div>
+        {loading ? (
+          <>
+            <div className="skeleton skeleton-title"></div>
+            <div className="filter-bar">
+              <div className="slect">
+                <div className="skeleton skeleton-select"></div>
+                <div className="skeleton skeleton-select"></div>
+              </div>
+              <div className="skeleton skeleton-select"></div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="filter-bar">
+              <div className="slect">
+                <select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(Number(e.target.value))}
+                >
+                  {availableYears.map((y) => (
+                    <option key={y} value={y}>
+                      {y}
+                    </option>
+                  ))}
+                </select>
 
-        <div className="filter-bar">
-          <div className="slect">
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-            >
-              {availableYears.map((y) => (
-                <option key={y} value={y}>
-                  {y}
-                </option>
-              ))}
-            </select>
-
-            {(range === "month" || range === "week") && (
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              >
-                {Array.from({ length: 12 }).map((_, i) => (
-                  <option key={i} value={i}>
-                    {new Date(0, i).toLocaleString("default", {
-                      month: "long",
-                    })}
-                  </option>
+                {(range === "month" || range === "week") && (
+                  <select
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                  >
+                    {Array.from({ length: 12 }).map((_, i) => (
+                      <option key={i} value={i}>
+                        {new Date(0, i).toLocaleString("default", {
+                          month: "long",
+                        })}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              <div className="range-toggle">
+                {["week", "month", "year"].map((r) => (
+                  <button
+                    key={r}
+                    className={range === r ? "active" : ""}
+                    onClick={() => setRange(r)}
+                  >
+                    {r}
+                  </button>
                 ))}
-              </select>
-            )}
-          </div>
-          <div className="range-toggle">
-            {["week", "month", "year"].map((r) => (
-              <button
-                key={r}
-                className={range === r ? "active" : ""}
-                onClick={() => setRange(r)}
-              >
-                {r}
-              </button>
-            ))}
-          </div>
-        </div>
+              </div>
+            </div>
+          </>
+        )}
       </header>
 
       {/* OVERVIEW CARDS */}
       <div className="analytics-stats-grid">
-        <div className="stat-card">
-          <span>Total Income</span>
-          <h3 className="income-text">
-            {symbol} {formatCurrency(convert(totalIncome))}
-          </h3>
-        </div>
-        <div className="stat-card">
-          <span>Total Expense</span>
-          <h3 className="expense-text">
-            {symbol} {formatCurrency(convert(totalExpense))}
-          </h3>
-        </div>
-        <div className="stat-card">
-          <span>Investments</span>
-          <h3 className="investment-text">
-            {symbol} {formatCurrency(convert(totalInvestment))}
-          </h3>
-        </div>
-        <div className="stat-card primary-card">
-          <span>Net Balance</span>
-          <h3>
-            {symbol} {formatCurrency(convert(balance))}
-          </h3>
-        </div>
+        {loading ? (
+          <SkeletonStats />
+        ) : (
+          <>
+            <div className="stat-card">
+              <span>Total Income</span>
+              <h3 className="income-text">
+                {symbol} {formatCurrency(convert(totalIncome))}
+              </h3>
+            </div>
+            <div className="stat-card">
+              <span>Total Expense</span>
+              <h3 className="expense-text">
+                {symbol} {formatCurrency(convert(totalExpense))}
+              </h3>
+            </div>
+            <div className="stat-card">
+              <span>Investments</span>
+              <h3 className="investment-text">
+                {symbol} {formatCurrency(convert(totalInvestment))}
+              </h3>
+            </div>
+            <div className="stat-card primary-card">
+              <span>Net Balance</span>
+              <h3>
+                {symbol} {formatCurrency(convert(balance))}
+              </h3>
+            </div>
+          </>
+        )}
       </div>
       {/* LOAN & BORROW ANALYTICS */}
       <div className="analytics-stats-grid">
-        <div className="stat-card">
-          <span>Loan Principal Received</span>
-          <h3>
-            {symbol} {formatCurrency(convert(loanStats.loanPrincipalReceived))}
-          </h3>
-        </div>
+        {loading ? (
+          <SkeletonStats />
+        ) : (
+          <>
+            <div className="stat-card">
+              <span>Loan Principal Received</span>
+              <h3>
+                {symbol}{" "}
+                {formatCurrency(convert(loanStats.loanPrincipalReceived))}
+              </h3>
+            </div>
 
-        <div className="stat-card">
-          <span>Loan Interest Earned</span>
-          <h3>
-            {symbol} {formatCurrency(convert(loanStats.loanInterestReceived))}
-          </h3>
-        </div>
+            <div className="stat-card">
+              <span>Loan Interest Earned</span>
+              <h3>
+                {symbol}{" "}
+                {formatCurrency(convert(loanStats.loanInterestReceived))}
+              </h3>
+            </div>
 
-        <div className="stat-card">
-          <span>Total Borrow Repaid</span>
-          <h3>
-            {symbol} {formatCurrency(convert(loanStats.borrowTotalPaid))}
-          </h3>
-        </div>
+            <div className="stat-card">
+              <span>Total Borrow Repaid</span>
+              <h3>
+                {symbol} {formatCurrency(convert(loanStats.borrowTotalPaid))}
+              </h3>
+            </div>
 
-        <div className="stat-card primary-card">
-          <span>Net Loan Gain</span>
-          <h3>
-            {symbol}
-            {formatCurrency(
-              convert(loanStats.loanTotalReceived - loanStats.borrowTotalPaid)
-            )}
-          </h3>
-        </div>
-      </div>
-
-      {/* MAIN BAR CHART */}
-      <motion.div
-        className="chart-card main-chart"
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-      >
-        <h3>Income vs Expense</h3>
-        <div className="chart-wrapper">
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart
-              data={barData}
-              margin={{ top: 20, right: 30, left: 0, bottom: 0 }}
-            >
-              <XAxis
-                dataKey="name"
-                axisLine={false}
-                tickLine={false}
-                tick={{
-                  fill: "#a79e9c",
-                  fontSize: 10,
-                  fontWeight: 600,
-                }}
-                interval={0}
-                angle={-45}
-                textAnchor="end"
-                height={60}
-              />
-              <YAxis axisLine={false} tickLine={false} />
-              <Tooltip
-                cursor={{ fill: "#f0f0f0" }}
-                contentStyle={{
-                  borderRadius: "12px",
-                  border: "none",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                }}
-              />
-              <Legend verticalAlign="top" align="right" height={36} />
-              <Bar
-                dataKey="Income"
-                fill="#B58863"
-                radius={[4, 4, 0, 0]}
-                barSize={30}
-                label={{
-                  position: "top",
-                  fontSize: "10px",
-                  fontWeight: "700",
-                  fill: "#B58863",
-                  fontFamily: "Inter",
-                  offset: 5,
-                }}
-              />
-              <Bar
-                dataKey="Expense"
-                fill="#10232A"
-                radius={[4, 4, 0, 0]}
-                barSize={30}
-                label={{
-                  position: "top",
-                  fontSize: "10px",
-                  fontWeight: "700",
-                  fill: "#10232A",
-                  fontFamily: "Inter",
-                  offset: 5,
-                }}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </motion.div>
-
-      {/* PIE CHARTS SECTION */}
-      <div className="pie-section">
-        <div className="chart-card">
-          <div className="headerselect">
-            <h3>Payment Methods</h3>
-            <select
-              value={paymentFilter}
-              onChange={(e) => setPaymentFilter(e.target.value)}
-            >
-              {/* <option value="all">All Transactions</option> */}
-              <option value="income">Income Only</option>
-              <option value="expense">Expense Only</option>
-            </select>
-          </div>
-          <div className="chart-wrapper">
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={paymentTypeData}
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                  label={{
-                    fontSize: "10px",
-                    fontWeight: "700",
-                    fill: "#10232A",
-                    fontFamily: "Inter",
-                  }}
-                  labelLine={{ stroke: "#A79E9C", strokeWidth: 1 }}
-                >
-                  {paymentTypeData.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        <div className="chart-card">
-          <div className="headerselect">
-            <h3>Category Breakdown</h3>
-            <select
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-            >
-              <option value="expense">Expenses Only</option>
-              <option value="income">Income Only</option>
-            </select>
-          </div>
-
-          <div className="chart-wrapper">
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={categoryChartData}
-                  // innerRadius={45}
-                  outerRadius={65}
-                  // outerRadius={80}
-                  dataKey="value"
-                  label={{
-                    fontSize: "10px",
-                    fontWeight: "700",
-                    fill: "#10232A",
-                    fontFamily: "Inter",
-                  }}
-                  labelLine={{ stroke: "#A79E9C", strokeWidth: 1 }}
-                  // label={({ name }) => name}
-                >
-                  {categoryChartData.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend
-                  layout="horizontal"
-                  verticalAlign="bottom"
-                  align="center"
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        <div className="chart-card">
-          <div className="headerselect">
-            <h3>Investment Breakdown</h3>
-            <select
-              value={investPaymentFilter}
-              onChange={(e) => setInvestPaymentFilter(e.target.value)}
-            >
-              <option value="all">All Modes</option>
-              <option value="online">Online Only</option>
-              <option value="cash">Cash Only</option>
-            </select>
-          </div>
-
-          <div className="chart-wrapper">
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={investmentCategoryData}
-                  outerRadius={65}
-                  dataKey="value"
-                  label={{
-                    fontSize: "10px",
-                    fontWeight: "700",
-                    fill: "#10232A", // Deep Teal from your palette
-                    fontFamily: "Inter",
-                  }}
-                  labelLine={{ stroke: "#A79E9C", strokeWidth: 1 }}
-                >
-                  {investmentCategoryData.map((_, i) => (
-                    <Cell key={i} fill={COLORS[(i + 3) % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend
-                  layout="horizontal"
-                  verticalAlign="bottom"
-                  align="center"
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-        <div className="chart-card">
-          <div className="headerselect">
-            <h3>Loan Analysis</h3>
-            <select
-              value={loanViewMode}
-              onChange={(e) => setLoanViewMode(e.target.value)}
-            >
-              <option value="principal">Principal Flow</option>
-              <option value="interest">Profit & Loss (Interest)</option>
-            </select>
-          </div>
-
-          <div className="chart-wrapper">
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={loanPieData}
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                  label={{
-                    fontSize: "10px",
-                    fontWeight: "700",
-                    fill: "#10232A",
-                    fontFamily: "Inter",
-                  }}
-                  labelLine={{ stroke: "#A79E9C", strokeWidth: 1 }}
-                >
-                  {loanPieData.map((entry, i) => (
-                    <Cell
-                      key={i}
-                      fill={
-                        loanViewMode === "interest" &&
-                        entry.name === "Interest Loss"
-                          ? "#F87171"
-                          : COLORS[i % COLORS.length]
-                      }
-                    />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Dynamic Summary Text */}
-          {loanViewMode === "interest" && (
-            <div
-              style={{
-                textAlign: "center",
-                marginTop: "10px",
-                fontWeight: "800",
-              }}
-            >
-              Net{" "}
-              {loanStats.loanInterestReceived >= loanStats.borrowInterestPaid
-                ? "Profit"
-                : "Loss"}
-              :
-              <span
-                style={{
-                  color:
-                    loanStats.loanInterestReceived >=
-                    loanStats.borrowInterestPaid
-                      ? "#10B981"
-                      : "#EF4444",
-                }}
-              >
+            <div className="stat-card primary-card">
+              <span>Net Loan Gain</span>
+              <h3>
                 {symbol}
                 {formatCurrency(
                   convert(
-                    Math.abs(
-                      loanStats.loanInterestReceived -
-                        loanStats.borrowInterestPaid
-                    )
+                    loanStats.loanTotalReceived - loanStats.borrowTotalPaid
                   )
                 )}
-              </span>
+              </h3>
             </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
+
+      {/* MAIN BAR CHART */}
+      {loading ? (
+        <SkeletonChart />
+      ) : (
+        <motion.div
+          className="chart-card main-chart"
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+        >
+          <h3>Income vs Expense</h3>
+          <div className="chart-wrapper">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart
+                data={barData}
+                margin={{ top: 20, right: 30, left: 0, bottom: 0 }}
+              >
+                <XAxis
+                  dataKey="name"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{
+                    fill: "#a79e9c",
+                    fontSize: 10,
+                    fontWeight: 600,
+                  }}
+                  interval={0}
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
+                />
+                <YAxis axisLine={false} tickLine={false} />
+                <Tooltip
+                  cursor={{ fill: "#f0f0f0" }}
+                  contentStyle={{
+                    borderRadius: "12px",
+                    border: "none",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                  }}
+                />
+                <Legend verticalAlign="top" align="right" height={36} />
+                <Bar
+                  dataKey="Income"
+                  fill="#B58863"
+                  radius={[4, 4, 0, 0]}
+                  barSize={30}
+                  label={{
+                    position: "top",
+                    fontSize: "10px",
+                    fontWeight: "700",
+                    fill: "#B58863",
+                    fontFamily: "Inter",
+                    offset: 5,
+                  }}
+                />
+                <Bar
+                  dataKey="Expense"
+                  fill="#10232A"
+                  radius={[4, 4, 0, 0]}
+                  barSize={30}
+                  label={{
+                    position: "top",
+                    fontSize: "10px",
+                    fontWeight: "700",
+                    fill: "#10232A",
+                    fontFamily: "Inter",
+                    offset: 5,
+                  }}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+      )}
+
+      {/* PIE CHARTS SECTION */}
+      <div className="pie-section">
+        {loading ? (
+          <>
+            <SkeletonChart />
+            <SkeletonChart />
+          </>
+        ) : (
+          <>
+            <div className="chart-card">
+              <div className="headerselect">
+                <h3>Payment Methods</h3>
+                <select
+                  value={paymentFilter}
+                  onChange={(e) => setPaymentFilter(e.target.value)}
+                >
+                  {/* <option value="all">All Transactions</option> */}
+                  <option value="income">Income Only</option>
+                  <option value="expense">Expense Only</option>
+                </select>
+              </div>
+              <div className="chart-wrapper">
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={paymentTypeData}
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="value"
+                      label={{
+                        fontSize: "10px",
+                        fontWeight: "700",
+                        fill: "#10232A",
+                        fontFamily: "Inter",
+                      }}
+                      labelLine={{ stroke: "#A79E9C", strokeWidth: 1 }}
+                    >
+                      {paymentTypeData.map((_, i) => (
+                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="chart-card">
+              <div className="headerselect">
+                <h3>Category Breakdown</h3>
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                >
+                  <option value="expense">Expenses Only</option>
+                  <option value="income">Income Only</option>
+                </select>
+              </div>
+
+              <div className="chart-wrapper">
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={categoryChartData}
+                      // innerRadius={45}
+                      outerRadius={65}
+                      // outerRadius={80}
+                      dataKey="value"
+                      label={{
+                        fontSize: "10px",
+                        fontWeight: "700",
+                        fill: "#10232A",
+                        fontFamily: "Inter",
+                      }}
+                      labelLine={{ stroke: "#A79E9C", strokeWidth: 1 }}
+                      // label={({ name }) => name}
+                    >
+                      {categoryChartData.map((_, i) => (
+                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend
+                      layout="horizontal"
+                      verticalAlign="bottom"
+                      align="center"
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+            <div className="chart-card">
+              <div className="headerselect">
+                <h3>Investment Breakdown</h3>
+                <select
+                  value={investPaymentFilter}
+                  onChange={(e) => setInvestPaymentFilter(e.target.value)}
+                >
+                  <option value="all">All Modes</option>
+                  <option value="online">Online Only</option>
+                  <option value="cash">Cash Only</option>
+                </select>
+              </div>
+
+              <div className="chart-wrapper">
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={investmentCategoryData}
+                      outerRadius={65}
+                      dataKey="value"
+                      label={{
+                        fontSize: "10px",
+                        fontWeight: "700",
+                        fill: "#10232A", // Deep Teal from your palette
+                        fontFamily: "Inter",
+                      }}
+                      labelLine={{ stroke: "#A79E9C", strokeWidth: 1 }}
+                    >
+                      {investmentCategoryData.map((_, i) => (
+                        <Cell key={i} fill={COLORS[(i + 3) % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend
+                      layout="horizontal"
+                      verticalAlign="bottom"
+                      align="center"
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+            <div className="chart-card">
+              <div className="headerselect">
+                <h3>Loan Analysis</h3>
+                <select
+                  value={loanViewMode}
+                  onChange={(e) => setLoanViewMode(e.target.value)}
+                >
+                  <option value="principal">Principal Flow</option>
+                  <option value="interest">Profit & Loss (Interest)</option>
+                </select>
+              </div>
+
+              <div className="chart-wrapper">
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={loanPieData}
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="value"
+                      label={{
+                        fontSize: "10px",
+                        fontWeight: "700",
+                        fill: "#10232A",
+                        fontFamily: "Inter",
+                      }}
+                      labelLine={{ stroke: "#A79E9C", strokeWidth: 1 }}
+                    >
+                      {loanPieData.map((entry, i) => (
+                        <Cell
+                          key={i}
+                          fill={
+                            loanViewMode === "interest" &&
+                            entry.name === "Interest Loss"
+                              ? "#F87171"
+                              : COLORS[i % COLORS.length]
+                          }
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Dynamic Summary Text */}
+              {loanViewMode === "interest" && (
+                <div
+                  style={{
+                    textAlign: "center",
+                    marginTop: "10px",
+                    fontWeight: "800",
+                  }}
+                >
+                  Net{" "}
+                  {loanStats.loanInterestReceived >=
+                  loanStats.borrowInterestPaid
+                    ? "Profit"
+                    : "Loss"}
+                  :
+                  <span
+                    style={{
+                      color:
+                        loanStats.loanInterestReceived >=
+                        loanStats.borrowInterestPaid
+                          ? "#10B981"
+                          : "#EF4444",
+                    }}
+                  >
+                    {symbol}
+                    {formatCurrency(
+                      convert(
+                        Math.abs(
+                          loanStats.loanInterestReceived -
+                            loanStats.borrowInterestPaid
+                        )
+                      )
+                    )}
+                  </span>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+      {loading && (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+            gap: 12,
+            marginTop: 18,
+          }}
+        >
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="stat-card">
+              <div className="skeleton skeleton-text"></div>
+              <div
+                className="skeleton skeleton-stat"
+                style={{ marginTop: 8 }}
+              ></div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* MONTHLY CARDS: render only when range === "year" AND we have monthly data */}
       {range === "year" && hasMonthlyData && (

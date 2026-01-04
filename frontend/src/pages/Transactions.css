@@ -201,3 +201,51 @@
     width: 150px;
   }
 }
+/* ===== Skeleton Loader ===== */
+.skeleton {
+  background: linear-gradient(90deg, #e6e6e6 25%, #f2f2f2 37%, #e6e6e6 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+  border-radius: 8px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+/* Filter Skeletons */
+.skeleton-select {
+  height: 44px;
+  width: 100%;
+}
+
+/* Transaction Card Skeleton */
+.tx-card.skeleton-card {
+  pointer-events: none;
+}
+
+.skeleton-date {
+  width: 42px;
+  height: 48px;
+  border-radius: 10px;
+}
+
+.skeleton-text {
+  height: 14px;
+  width: 140px;
+  margin-bottom: 8px;
+}
+
+.skeleton-text.sm {
+  width: 100px;
+}
+
+.skeleton-amount {
+  width: 90px;
+  height: 16px;
+}

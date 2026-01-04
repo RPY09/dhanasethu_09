@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import Navbar from "./components/layout/Navbar";
 import AppRoutes from "./routes/AppRoutes";
 import api from "./api/axios";
-
+import ScrollToTop from "./components/ScrollToTop";
 function App() {
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -24,6 +24,7 @@ function App() {
 
   return (
     <>
+      <ScrollToTop />
       <Navbar />
       <AppRoutes />
     </>

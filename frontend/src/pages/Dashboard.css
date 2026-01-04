@@ -210,17 +210,14 @@
   color: white;
 }
 
-/* Modern Overlay & Modal */
-/* backend/src/pages/Dashboard.css */
-
 .currency-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(16, 35, 42, 0.4); /* Subtle dimming */
+  background: rgba(16, 35, 42, 0.4);
   backdrop-filter: blur(8px);
   z-index: 10000;
   display: flex;
-  align-items: flex-end; /* Align modal to bottom */
+  align-items: flex-end;
   justify-content: center;
 }
 
@@ -229,10 +226,9 @@
   max-width: 500px;
   background: #ffffff;
 
-  /* HEIGHT RESTRICTION */
-  height: 50vh; /* Enforce exactly 50% of viewport height */
+  height: 50vh;
   display: flex;
-  flex-direction: column; /* Stack search and list vertically */
+  flex-direction: column;
 
   border-radius: 30px 30px 0 0;
   padding: 24px;
@@ -240,15 +236,13 @@
   animation: slideUp 0.3s ease-out;
 }
 
-/* Internal List Container - This is what will scroll */
 .currency-modal .country-list-container {
-  flex: 1; /* Take up remaining space after search bar */
-  overflow-y: auto; /* Enable vertical scrolling */
+  flex: 1;
+  overflow-y: auto;
   margin-top: 16px;
-  padding-right: 4px; /* Space for scrollbar */
+  padding-right: 4px;
 }
 
-/* Classy Scrollbar Styling */
 .currency-modal .country-list-container::-webkit-scrollbar {
   width: 4px;
 }
@@ -288,4 +282,59 @@
     opacity: 1;
     transform: scale(1);
   }
+}
+/* Skeleton Loader */
+.skeleton {
+  background: linear-gradient(90deg, #e5e5e5 25%, #f1f1f1 37%, #e5e5e5 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+  border-radius: 8px;
+}
+
+.skeleton-lg {
+  height: 36px;
+  width: 180px;
+}
+
+.skeleton-sm {
+  height: 16px;
+  width: 100px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+/* Color-aware skeletons */
+.skeleton-dark {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.15) 25%,
+    rgba(255, 255, 255, 0.25) 37%,
+    rgba(255, 255, 255, 0.15) 63%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+
+.skeleton-light {
+  background: linear-gradient(90deg, #e5e5e5 25%, #f1f1f1 37%, #e5e5e5 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+
+.skeleton-text-md {
+  height: 18px;
+  width: 120px;
+  border-radius: 6px;
+}
+
+.skeleton-text-sm {
+  height: 14px;
+  width: 80px;
+  border-radius: 6px;
 }

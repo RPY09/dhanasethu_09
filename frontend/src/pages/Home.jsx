@@ -2,7 +2,6 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import appIcon from "../assets/dhanasethuIconWithName.png";
 import "./Home.css";
-// import { useCurrency } from "../context/CurrencyContext";
 
 const Home = () => {
   const isLoggedIn = Boolean(localStorage.getItem("token"));
@@ -11,9 +10,11 @@ const Home = () => {
     <div className="home-wrapper">
       {/* Hero Section */}
       <section className="hero-section">
+        <div className="hero-glow"></div>
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
           className="hero-content"
         >
           <div className="home-logo-wrap">
@@ -23,135 +24,155 @@ const Home = () => {
               className="home-brand-icon"
             />
           </div>
-          <h1>
-            Track Your Money. <br />
-            <span>Build Your Future.</span>
+
+          <h1 className="hero-title">
+            Master Your Money. <br />
+            <span className="accent-text">Elevate Your Life.</span>
           </h1>
-          <p>
-            DhanaSethu is your premium personal finance bridge, simplifying how
-            you track expenses, manage loans, and visualize your path to wealth.
+
+          <p className="hero-subtitle">
+            A premium financial bridge designed to track spending, manage dues,
+            and secure your digital wealth with elegance.
           </p>
+
           <div className="hero-btns">
             {isLoggedIn ? (
               <>
-                <Link to="/dashboard">
-                  <button className="btn-primary">Dashboard</button>
+                <Link to="/dashboard" className="btn-glass">
+                  Dashboard
                 </Link>
-                <Link to="/add-transaction">
-                  <button className="btn-secondary">Add Transaction</button>
+                <Link to="/add-transaction" className="btn-primary-new">
+                  Quick Add
                 </Link>
               </>
             ) : (
               <>
-                <Link to="/login">
-                  <button className="btn-primary">Get Started</button>
+                <Link to="/login" className="btn-primary-new">
+                  Get Started
                 </Link>
-                <Link to="/register">
-                  <button className="btn-secondary">Create Account</button>
+                <Link to="/register" className="btn-outline">
+                  Create Account
                 </Link>
               </>
             )}
           </div>
+
+          <div className="hero-trust-badge">
+            <i className="bi bi-shield-check"></i> Military-grade Encryption
+          </div>
         </motion.div>
       </section>
 
-      {/* About Section */}
-      <section className="about-section">
-        <div className="section-header">
-          <h2>What is DhanaSethu?</h2>
-          <div className="underline"></div>
-        </div>
-        <p>
-          DhanaSethu is a comprehensive wealth management tool designed for the
-          modern individual. Unlike simple trackers, we focus on the "Flow" of
-          your money—balancing daily spending with long-term investments and
-          private lending/borrowing records.
-        </p>
-
-        <div className="feature-grid">
-          <div className="feature-card">
-            <i className="bi bi-graph-up-arrow"></i>
-            <h3>Advanced Analytics</h3>
-            <p>
-              Visualize Income vs. Expense and Category breakdowns with
-              precision.
-            </p>
+      {/* Stats/Preview Section (New) */}
+      <section className="stats-preview">
+        <div className="preview-card glass-morphism">
+          <div className="preview-item">
+            <span className="label">Wealth Flow</span>
+            <span className="value">Automated</span>
           </div>
-          <div className="feature-card">
-            <i className="bi bi-safe"></i>
-            <h3>Loan Management</h3>
-            <p>
-              Track principal and interest for money lended or borrowed with
-              automated dues alerts.
-            </p>
-          </div>
-          <div className="feature-card">
-            <i className="bi bi-shield-lock"></i>
-            <h3>Secure Access</h3>
-            <p>
-              Encrypted authentication ensures your financial data stays private
-              and secure.
-            </p>
+          <div className="preview-divider"></div>
+          <div className="preview-item">
+            <span className="label">Security</span>
+            <span className="value">Private</span>
           </div>
         </div>
       </section>
 
-      {/* How to Use Section */}
-      <section className="how-to-use">
-        <h2>How to Use DhanaSethu</h2>
+      {/* Feature Section */}
+      <section className="about-section">
+        <div className="section-header">
+          <span className="overline">Capabilities</span>
+          <h2>Financial Intelligence</h2>
+        </div>
+
+        <div className="feature-grid">
+          <div className="feature-card-new">
+            <div className="icon-box">
+              <i className="bi bi-graph-up-arrow"></i>
+            </div>
+            <h3>Analytics</h3>
+            <p>Visual breakdown of your income and category spending.</p>
+          </div>
+          <div className="feature-card-new">
+            <div className="icon-box">
+              <i className="bi bi-safe"></i>
+            </div>
+            <h3>Lending</h3>
+            <p>Manage private loans and automated interest calculations.</p>
+          </div>
+          <div className="feature-card-new">
+            <div className="icon-box">
+              <i className="bi bi-fingerprint"></i>
+            </div>
+            <h3>Privacy</h3>
+            <p>Your data is yours. Encrypted and never shared.</p>
+          </div>
+        </div>
+      </section>
+      <section className="how-it-works">
+        <div className="section-header">
+          <span className="overline">The Process</span>
+          <h2>How to use DhanaSethu</h2>
+        </div>
+
         <div className="step-container">
-          <div className="step">
-            <div className="step-num">1</div>
-            <h4>Record Entry</h4>
-            <p>
-              Use the "Add" button to log daily expenses, income, or
-              investments.
-            </p>
-          </div>
-          <div className="step">
-            <div className="step-num">2</div>
-            <h4>Manage Dues</h4>
-            <p>
-              Log money lended or borrowed in the "Dues" section to track
-              interest flow.
-            </p>
-          </div>
-          <div className="step">
-            <div className="step-num">3</div>
-            <h4>Review Stats</h4>
-            <p>
-              Check "Stats" for monthly breakdowns and payment method analysis.
-            </p>
-          </div>
+          <motion.div
+            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, x: -20 }}
+            className="step-card"
+          >
+            <div className="step-number">01</div>
+            <div className="step-info">
+              <h3>Secure Onboarding</h3>
+              <p>
+                Create your private account with military-grade encryption to
+                protect your financial footprint.
+              </p>
+            </div>
+          </motion.div>
+
+          <motion.div
+            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, x: -20 }}
+            transition={{ delay: 0.2 }}
+            className="step-card"
+          >
+            <div className="step-number">02</div>
+            <div className="step-info">
+              <h3>Log Transactions</h3>
+              <p>
+                Easily input daily expenses, income, or private lending dues
+                through our intuitive interface.
+              </p>
+            </div>
+          </motion.div>
+
+          <motion.div
+            whileInView={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, x: -20 }}
+            transition={{ delay: 0.4 }}
+            className="step-card"
+          >
+            <div className="step-number">03</div>
+            <div className="step-info">
+              <h3>Analyze & Grow</h3>
+              <p>
+                View automated wealth flow reports and track your path to
+                financial freedom in real-time.
+              </p>
+            </div>
+          </motion.div>
         </div>
       </section>
 
       {/* Footer */}
       <footer className="home-footer">
-        <div className="footer-content">
-          <div className="footer-logo">
-            Dhana<span>Sethu</span>
-          </div>
-          <p>Your Financial Bridge.</p>
-          <div className="footer-links">
-            {isLoggedIn ? (
-              <>
-                <Link to="/dashboard">Dashboard</Link>
-                <Link to="/profile">Profile</Link>
-              </>
-            ) : (
-              <>
-                <Link to="/login">Login</Link>
-                <Link to="/register">Register</Link>
-              </>
-            )}
-            <a href="#about">Privacy Policy</a>
-          </div>
-
-          <div className="copyright">
-            <p>R.P.Y</p>
-            &copy; {new Date().getFullYear()} DhanaSethu. All rights reserved.
-          </div>
+        <div className="footer-logo">
+          Dhana<span>Sethu</span>
+        </div>
+        <p className="footer-tagline">The bridge to financial freedom.</p>
+        <div className="copyright">
+          &copy; {new Date().getFullYear()} DhanaSethu • Crafted for Excellence
         </div>
       </footer>
     </div>

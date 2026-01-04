@@ -2,12 +2,11 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { getTransactions } from "../api/transaction.api";
 import { getLoanSummary } from "../api/loan.api";
-import { useAlert } from "../components/Alert/AlertContext";
 import { useCurrency } from "../context/CurrencyContext";
 import CountryCurrencyDropdown from "../components/CountryCurrencyDropdown";
-
 import "./Dashboard.css";
 
+/* ------------------ Utils ------------------ */
 const parseNumber = (v) => {
   const n = Number(String(v).replace(/,/g, ""));
   return Number.isFinite(n) ? n : 0;
@@ -21,123 +20,170 @@ const detectPaymentMode = (t = {}) => {
   return String(raw).toLowerCase();
 };
 
+/* ------------------ Component ------------------ */
 const Dashboard = () => {
-  const [transactions, setTransactions] = useState([]);
-  const { showAlert } = useAlert();
-  const { convert, displayCountry, displayCurrency, symbol } = useCurrency();
+  const { convert, displayCountry, symbol } = useCurrency();
 
+  const [transactions, setTransactions] = useState([]);
+  const [loanSummary, setLoanSummary] = useState({ lent: 0, borrowed: 0 });
+
+  const [loading, setLoading] = useState(true);
+  const [isColdStart, setIsColdStart] = useState(false);
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
 
-  const [loanSummary, setLoanSummary] = useState({
-    lent: 0,
-    borrowed: 0,
-  });
+  /* ------------------ Cache First ------------------ */
+  useEffect(() => {
+    const cachedTx = localStorage.getItem("dashboard_cache");
+    if (cachedTx) {
+      setTransactions(JSON.parse(cachedTx));
+      setLoading(false);
+    }
+
+    const cachedLoan = localStorage.getItem("loan_cache");
+    if (cachedLoan) {
+      setLoanSummary(JSON.parse(cachedLoan));
+    }
+  }, []);
+
+  /* ------------------ Fetch Loans ------------------ */
   useEffect(() => {
     const fetchLoans = async () => {
       try {
         const data = await getLoanSummary();
         setLoanSummary(data);
-      } catch (e) {
-        console.error("Loan summary failed");
+        localStorage.setItem("loan_cache", JSON.stringify(data));
+      } catch {
+        const cached = localStorage.getItem("loan_cache");
+        if (cached) setLoanSummary(JSON.parse(cached));
       }
     };
-
     fetchLoans();
   }, []);
 
+  /* ------------------ Fetch Transactions ------------------ */
   const fetchTransactions = useCallback(async () => {
+    const start = Date.now();
     try {
       const data = await getTransactions();
-
       const sorted = (Array.isArray(data) ? data : [])
         .filter((t) => t?.date && !isNaN(Date.parse(t.date)))
         .sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
 
       setTransactions(sorted);
-    } catch (err) {
-      console.error("Failed to load transactions", err);
-      setTransactions([]);
+      localStorage.setItem("dashboard_cache", JSON.stringify(sorted));
+    } catch {
+      const cached = localStorage.getItem("dashboard_cache");
+      if (cached) setTransactions(JSON.parse(cached));
+    } finally {
+      if (Date.now() - start > 4000) setIsColdStart(true);
+      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     fetchTransactions();
-
-    const onTxChanged = () => fetchTransactions();
-    const onLoanChanged = async () => {
-      fetchTransactions();
-      const data = await getLoanSummary();
-      setLoanSummary(data);
-    };
-
-    window.addEventListener("transactions:changed", onTxChanged);
-    window.addEventListener("loans:changed", onLoanChanged);
-
-    return () => {
-      window.removeEventListener("transactions:changed", onTxChanged);
-      window.removeEventListener("loans:changed", onLoanChanged);
-    };
   }, [fetchTransactions]);
 
+  /* ------------------ Calculations ------------------ */
   const now = new Date();
-  const currentMonthIndex = now.getMonth();
-  const currentYear = now.getFullYear();
-  const isPrincipalTxn = (t) =>
-    t.isPrincipal === true || t.isPrincipal === "true";
+  const month = now.getMonth();
+  const year = now.getFullYear();
 
-  // --- MONTHLY STATS (Income/Expense/Investment) ---
   const { monthlyIncome, monthlyExpense, monthlyInvest } = useMemo(() => {
     return transactions.reduce(
       (acc, t) => {
         const d = new Date(t.date);
-        if (
-          d.getMonth() === currentMonthIndex &&
-          d.getFullYear() === currentYear
-        ) {
+        if (d.getMonth() === month && d.getFullYear() === year) {
           const amt = parseNumber(t.amount);
-          if ((t.type || "").toLowerCase() === "income" && !isPrincipalTxn(t)) {
-            acc.monthlyIncome += amt;
-          } else if (
-            (t.type || "").toLowerCase() === "expense" &&
-            !isPrincipalTxn(t)
-          ) {
-            acc.monthlyExpense += amt;
-          } else if (
-            ["investment", "invest"].includes((t.type || "").toLowerCase())
-          )
+          const type = (t.type || "").toLowerCase();
+          if (type === "income") acc.monthlyIncome += amt;
+          else if (type === "expense") acc.monthlyExpense += amt;
+          else if (type === "investment" || type === "invest")
             acc.monthlyInvest += amt;
         }
         return acc;
       },
       { monthlyIncome: 0, monthlyExpense: 0, monthlyInvest: 0 }
     );
-  }, [transactions, currentMonthIndex, currentYear]);
+  }, [transactions, month, year]);
 
-  // --- OVERALL TOTALS (Balance, Cash, Bank) ---
   const { balance, cashBalance, bankBalance } = useMemo(() => {
     let cash = 0;
     let bank = 0;
 
     transactions.forEach((t) => {
-      const mode = detectPaymentMode(t);
       const amt = parseNumber(t.amount);
       const signed = (t.type || "").toLowerCase() === "income" ? amt : -amt;
-
-      if (String(mode).includes("cash")) cash += signed;
-      else bank += signed;
+      detectPaymentMode(t).includes("cash")
+        ? (cash += signed)
+        : (bank += signed);
     });
 
-    return {
-      cashBalance: cash,
-      bankBalance: bank,
-      balance: cash + bank,
-    };
+    return { balance: cash + bank, cashBalance: cash, bankBalance: bank };
   }, [transactions]);
 
-  const recentTransactions = useMemo(() => {
-    return transactions.filter((t) => t?.date).slice(0, 5);
-  }, [transactions]);
+  const recentTransactions = useMemo(
+    () => transactions.slice(0, 5),
+    [transactions]
+  );
 
+  /* ------------------ Skeleton ------------------ */
+  const DashboardSkeleton = () => (
+    <>
+      <div className="tx-primary-card">
+        <div className="skeleton-dark" style={{ height: 14, width: 120 }} />
+        <div
+          className="skeleton-dark"
+          style={{ height: 42, width: 220, margin: "16px 0" }}
+        />
+        <div className="tx-monthly-grid">
+          {[...Array(3)].map((_, i) => (
+            <div key={i}>
+              <div
+                className="skeleton-dark"
+                style={{ height: 10, width: 80, marginBottom: 6 }}
+              />
+              <div
+                className="skeleton-dark"
+                style={{ height: 16, width: 100 }}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {[...Array(2)].map((_, i) => (
+        <div key={i} className="txs-controls" style={{ marginBottom: 24 }}>
+          {[...Array(2)].map((__, j) => (
+            <div key={j} className="tx-mini-card">
+              <div
+                className="skeleton-light"
+                style={{ height: 10, width: 90, marginBottom: 8 }}
+              />
+              <div
+                className="skeleton-light"
+                style={{ height: 16, width: 120 }}
+              />
+            </div>
+          ))}
+        </div>
+      ))}
+
+      <div className="tx-list">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="tx-card">
+            <div
+              className="skeleton-light"
+              style={{ height: 14, width: 140 }}
+            />
+            <div className="skeleton-light" style={{ height: 14, width: 80 }} />
+          </div>
+        ))}
+      </div>
+    </>
+  );
+
+  /* ------------------ Render ------------------ */
   return (
     <motion.div
       className="tx-wrapper"
@@ -148,7 +194,7 @@ const Dashboard = () => {
         <div className="tx-titles">
           <h1>Overview</h1>
           <p>
-            {now.toLocaleString("default", { month: "long" })} {currentYear}
+            {now.toLocaleString("default", { month: "long" })} {year}
           </p>
         </div>
         <div className="tx-date-box">
@@ -159,109 +205,113 @@ const Dashboard = () => {
         </div>
       </header>
 
-      <motion.div className="tx-primary-card" whileHover={{ scale: 1.01 }}>
-        <div className="tx-balance-label">
-          <span>OVERALL BALANCE</span>
-          <motion.div
-            className="currency-trigger"
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowCurrencyDropdown(true)}
-          >
-            <img
-              src={`https://flagcdn.com/w40/${displayCountry.toLowerCase()}.png`}
-              alt={displayCountry}
-              className="currency-flag-img"
-            />
-            <i className="bi bi-chevron-down flag-chevron"></i>
-          </motion.div>
+      {loading && isColdStart && (
+        <div className="cold-start-msg">
+          🚀 Waking up server… first load may take 20–30 seconds
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <span className="tx-balance-amount">
-            {symbol} {formatCurrency(convert(balance))}
-          </span>
-        </div>
+      )}
 
-        <div className="tx-monthly-grid">
-          <div className="tx-month-stat">
-            <span>Monthly Income</span>
-            <strong className="income">
-              {symbol} {formatCurrency(convert(monthlyIncome))}
-            </strong>
-          </div>
-          <div className="tx-month-stat">
-            <span>Expenses</span>
-            <strong className="expense">
-              {symbol} {formatCurrency(convert(monthlyExpense))}
-            </strong>
-          </div>
-          <div className="tx-month-stat">
-            <span>Invested</span>
-            <strong className="invest">
-              {symbol} {formatCurrency(convert(monthlyInvest))}
-            </strong>
-          </div>
-        </div>
-      </motion.div>
-
-      <div className="txs-controls" style={{ marginBottom: "24px" }}>
-        <div className="tx-mini-card">
-          <span className="tx-meta">CASH BALANCE</span>
-          <span className="tx-category">
-            {symbol} {formatCurrency(convert(cashBalance))}
-          </span>
-        </div>
-        <div className="tx-mini-card">
-          <span className="tx-meta">BANK BALANCE</span>
-          <span className="tx-category">
-            {symbol} {formatCurrency(convert(bankBalance))}
-          </span>
-        </div>
-      </div>
-      <div className="txs-controls" style={{ marginBottom: "24px" }}>
-        <div className="tx-mini-card">
-          <span className="tx-meta">LOANS GIVEN</span>
-          <span className="tx-category">
-            {symbol} {formatCurrency(convert(loanSummary.lent))}
-          </span>
-        </div>
-
-        <div className="tx-mini-card">
-          <span className="tx-meta">BORROWED</span>
-          <span className="tx-category">
-            {symbol} {formatCurrency(convert(loanSummary.borrowed))}
-          </span>
-        </div>
-      </div>
-
-      <section className="tx-recent">
-        <h3
-          className="tx-meta"
-          style={{ marginBottom: "12px", fontSize: "13px" }}
-        >
-          RECENT ACTIVITY
-        </h3>
-        <div className="tx-list">
-          {recentTransactions.map((t, i) => (
-            <div key={t._id || i} className="tx-card">
-              <div className="tx-card-left">
-                <div className="tx-info">
-                  <span className="tx-category">{t.category}</span>
-                  <span className="tx-meta">
-                    {t.paymentMode} • {new Date(t.date).toLocaleDateString()}
-                  </span>
-                </div>
+      {loading ? (
+        <DashboardSkeleton />
+      ) : (
+        <>
+          {/* PRIMARY CARD */}
+          <motion.div className="tx-primary-card" whileHover={{ scale: 1.01 }}>
+            <div className="tx-balance-label">
+              <span>OVERALL BALANCE</span>
+              <div
+                className="currency-trigger"
+                onClick={() => setShowCurrencyDropdown(true)}
+              >
+                <img
+                  src={`https://flagcdn.com/w40/${displayCountry.toLowerCase()}.png`}
+                  alt={displayCountry}
+                  className="currency-flag-img"
+                />
+                <i className="bi bi-chevron-down flag-chevron"></i>
               </div>
-              <span className={`tx-amount ${t.type}`}>
-                {(t.type || "").toLowerCase() === "income" ? "+" : "-"}
-                {symbol} {formatCurrency(convert(parseNumber(t.amount)))}
+            </div>
+
+            <div className="tx-balance-amount">
+              {symbol} {formatCurrency(convert(balance))}
+            </div>
+
+            <div className="tx-monthly-grid">
+              {[
+                ["Monthly Income", monthlyIncome, "income"],
+                ["Expenses", monthlyExpense, "expense"],
+                ["Invested", monthlyInvest, "invest"],
+              ].map(([label, val, cls]) => (
+                <div key={label} className="tx-month-stat">
+                  <span>{label}</span>
+                  <strong className={cls}>
+                    {symbol} {formatCurrency(convert(val))}
+                  </strong>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* CASH / BANK */}
+          <div className="txs-controls" style={{ marginBottom: 24 }}>
+            <div className="tx-mini-card">
+              <span className="tx-meta">CASH BALANCE</span>
+              <span className="tx-category">
+                {symbol} {formatCurrency(convert(cashBalance))}
               </span>
             </div>
-          ))}
-        </div>
-      </section>
+            <div className="tx-mini-card">
+              <span className="tx-meta">BANK BALANCE</span>
+              <span className="tx-category">
+                {symbol} {formatCurrency(convert(bankBalance))}
+              </span>
+            </div>
+          </div>
+
+          {/* LOANS */}
+          <div className="txs-controls" style={{ marginBottom: 24 }}>
+            <div className="tx-mini-card">
+              <span className="tx-meta">LOANS GIVEN</span>
+              <span className="tx-category">
+                {symbol} {formatCurrency(convert(loanSummary.lent))}
+              </span>
+            </div>
+            <div className="tx-mini-card">
+              <span className="tx-meta">BORROWED</span>
+              <span className="tx-category">
+                {symbol} {formatCurrency(convert(loanSummary.borrowed))}
+              </span>
+            </div>
+          </div>
+
+          {/* RECENT */}
+          <section className="tx-recent">
+            <h3 className="tx-meta" style={{ marginBottom: 12 }}>
+              RECENT ACTIVITY
+            </h3>
+            <div className="tx-list">
+              {recentTransactions.map((t, i) => (
+                <div key={i} className="tx-card">
+                  <div>
+                    <span className="tx-category">{t.category}</span>
+                    <span className="tx-meta">
+                      {t.paymentMode} • {new Date(t.date).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <span className={`tx-amount ${t.type}`}>
+                    {(t.type || "").toLowerCase() === "income" ? "+" : "-"}
+                    {symbol} {formatCurrency(convert(parseNumber(t.amount)))}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        </>
+      )}
+
       {showCurrencyDropdown && (
         <div className="currency-overlay">
-          <div className="currency-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="currency-modal">
             <CountryCurrencyDropdown
               onClose={() => setShowCurrencyDropdown(false)}
             />
