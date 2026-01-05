@@ -1,0 +1,133 @@
+.app-lock-wrapper {
+  background-color: var(--bg-soft); /* */
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 40px 24px;
+}
+
+.app-lock-content {
+  max-width: 400px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 80px);
+}
+
+/* BRANDING LOGO STYLING */
+.app-lock-branding {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.auth-logo-wrap {
+  margin-bottom: 20px;
+}
+
+.auth-brand-icon {
+  height: 60px; /* Uniform with other auth pages */
+  width: auto;
+  object-fit: contain;
+}
+
+.app-lock-header h1 {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--primary); /* */
+  letter-spacing: -1px;
+}
+
+.app-lock-header p {
+  color: var(--accent); /* */
+  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+/* PIN DISPLAY */
+.pin-display-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.pin-dots {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.pin-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid #e2e2e2;
+  transition: all 0.2s ease;
+}
+
+.pin-dot.active {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.pin-hint {
+  font-size: 14px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+/* KEYPAD UNIFORMITY */
+.keypad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  justify-items: center;
+}
+
+.key-btn {
+  width: 75px;
+  height: 75px;
+  border-radius: 50%;
+  border: none;
+  background: white;
+  color: var(--primary);
+  font-size: 24px;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(16, 35, 42, 0.04);
+  transition: all 0.1s ease;
+}
+
+.key-btn:active {
+  background: #f0f0f0;
+  transform: scale(0.95);
+}
+
+.key-btn.icon-mode {
+  color: var(--accent);
+}
+
+/* FOOTER */
+.app-lock-footer {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 40px;
+}
+
+.footer-link {
+  background: none;
+  border: none;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.footer-link.primary {
+  color: var(--primary);
+}

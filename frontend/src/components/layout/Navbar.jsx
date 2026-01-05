@@ -4,6 +4,16 @@ import "./Navbar.css";
 import appIcon from "../../assets/dhanasethu_icon.png";
 import { getLoans } from "../../api/loan.api";
 
+const allowedNavbarRoutes = [
+  "/dashboard",
+  "/transactions",
+  "/add-transaction",
+  "/loan",
+  "/analytics",
+  "/notifications",
+  "/profile",
+];
+
 const authNavItems = [
   {
     key: "dashboard",
@@ -50,6 +60,20 @@ const Navbar = () => {
     Boolean(localStorage.getItem("token"))
   );
   const [notificationCount, setNotificationCount] = useState(0);
+
+  const shouldShowNavbar = () => {
+    const path = location.pathname;
+
+    // Exact allowed pages
+    if (allowedNavbarRoutes.includes(path)) return true;
+
+    // Edit pages (dynamic routes)
+    if (path.startsWith("/edit-transaction") || path.startsWith("/edit-loan")) {
+      return true;
+    }
+
+    return false;
+  };
 
   /* ---------------- HELPERS ---------------- */
 
@@ -122,7 +146,7 @@ const Navbar = () => {
 
   const isActive = (path) => location.pathname === path;
 
-  if (!isAuthenticated) return null;
+  if (!isAuthenticated || !shouldShowNavbar()) return null;
 
   return (
     <>

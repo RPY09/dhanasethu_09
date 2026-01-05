@@ -1,15 +1,14 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAlert } from "../components/Alert/AlertContext";
 import { updateProfile, resetPasswordWithSecurity } from "../api/auth.api";
 import {
   isAppLockEnabled,
+  enableAppLock,
   changeAppLockPin,
   disableAppLock,
 } from "../utils/appLock";
-import { enableAppLock } from "../utils/appLock";
-
 import "./Profile.css";
 
 const Profile = () => {
@@ -19,20 +18,16 @@ const Profile = () => {
   const [user, setUser] = useState(
     JSON.parse(localStorage.getItem("user") || "{}")
   );
-  const [showEnableLock, setShowEnableLock] = useState(false);
-  const [newPin, setNewPin] = useState("");
 
   const [isEditing, setIsEditing] = useState(false);
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showEnableLock, setShowEnableLock] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
     name: user.name || "",
     number: user.number || "",
-    country: user.country || "IN",
-    baseCurrency: user.baseCurrency || "INR",
-    timezone: user.timezone || "",
   });
 
   const [securityData, setSecurityData] = useState({
@@ -40,72 +35,78 @@ const Profile = () => {
     newPassword: "",
   });
 
-  const [pinData, setPinData] = useState({
-    oldPin: "",
-    newPin: "",
-  });
+  const [pinData, setPinData] = useState({ oldPin: "", newPin: "" });
+  const [newPin, setNewPin] = useState("");
 
+  /* ---------------- LOGOUT ---------------- */
   const handleLogout = () => {
     localStorage.clear();
-    navigate("/login");
+    sessionStorage.clear();
+    window.location.replace("/login");
   };
 
+  /* ---------------- PROFILE UPDATE ---------------- */
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
+
+    if (!isEditing) return;
+
     try {
       const res = await updateProfile(formData);
-      localStorage.setItem("user", JSON.stringify(res.data.user));
-      setUser(res.data.user);
+      const updatedUser = res.data.user;
+
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      setUser(updatedUser);
+
       setIsEditing(false);
-      showAlert("Profile updated successfully", "success");
+      showAlert("Profile updated", "success");
     } catch {
-      showAlert("Profile update failed", "error");
+      showAlert("Update failed", "error");
     }
+  };
+
+  /* ---------------- APP LOCK ---------------- */
+  const handleEnableLock = () => {
+    if (newPin.length !== 4) {
+      showAlert("PIN must be 4 digits", "error");
+      return;
+    }
+    enableAppLock(newPin);
+    setShowEnableLock(false);
+    showAlert("App Lock Enabled", "success");
   };
 
   const handleChangePin = () => {
     if (!pinData.oldPin || !pinData.newPin) {
-      return showAlert("Enter both PIN fields", "error");
+      showAlert("Fill all PIN fields", "error");
+      return;
     }
-
-    if (!changeAppLockPin(pinData.oldPin, pinData.newPin)) {
-      return showAlert("Incorrect current PIN", "error");
+    const ok = changeAppLockPin(pinData.oldPin, pinData.newPin);
+    if (ok) {
+      setShowPinModal(false);
+      showAlert("PIN updated", "success");
+    } else {
+      showAlert("Incorrect old PIN", "error");
     }
-
-    setPinData({ oldPin: "", newPin: "" });
-    setShowPinModal(false);
-    showAlert("App Lock PIN updated", "success");
   };
 
   const handleDisableLock = () => {
-    disableAppLock();
-    showAlert("App Lock disabled", "success");
+    if (window.confirm("Disable App Lock?")) {
+      disableAppLock();
+      showAlert("App Lock Disabled", "success");
+    }
   };
 
+  /* ---------------- PASSWORD RESET ---------------- */
   const handlePasswordReset = async (e) => {
     e.preventDefault();
-
-    if (!securityData.answer || !securityData.newPassword) {
-      return showAlert("All fields are required", "error");
-    }
-
     try {
       setLoading(true);
-
-      await resetPasswordWithSecurity({
-        email: user.email,
-        answer: securityData.answer,
-        newPassword: securityData.newPassword,
-      });
-
+      await resetPasswordWithSecurity(securityData);
+      showAlert("Password updated", "success");
       setShowPasswordModal(false);
-      setSecurityData({ answer: "", newPassword: "" });
-      showAlert("Password updated successfully", "success");
-    } catch (err) {
-      showAlert(
-        err.response?.data?.message || "Password reset failed",
-        "error"
-      );
+    } catch {
+      showAlert("Password reset failed", "error");
     } finally {
       setLoading(false);
     }
@@ -113,18 +114,18 @@ const Profile = () => {
 
   return (
     <motion.div
-      className="profile-container"
+      className="profile-wrapper"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      <div className="profile-card">
-        <header className="profile-header">
-          <h2>Account Settings</h2>
-          <p>Manage your identity and security</p>
+      <div className="profile-compact-card">
+        <header className="profile-header-slim">
+          <h2>Profile</h2>
+          <p>Security & Identity</p>
         </header>
 
-        <form onSubmit={handleProfileUpdate} className="profile-form">
-          <div className="input-group">
+        <form onSubmit={handleProfileUpdate} className="profile-form-compact">
+          <div className="compact-input-group">
             <label>Full Name</label>
             <input
               value={formData.name}
@@ -135,12 +136,7 @@ const Profile = () => {
             />
           </div>
 
-          <div className="input-group">
-            <label>Email</label>
-            <input value={user.email} disabled className="disabled-input" />
-          </div>
-
-          <div className="input-group">
+          <div className="compact-input-group">
             <label>Mobile Number</label>
             <input
               value={formData.number}
@@ -151,100 +147,86 @@ const Profile = () => {
             />
           </div>
 
-          <div className="profile-actions">
-            {isAppLockEnabled() && (
-              <>
-                <button
-                  type="button"
-                  className="pwd-btn"
-                  onClick={() => setShowPinModal(true)}
-                >
-                  Change App Lock PIN
-                </button>
-
-                <button
-                  type="button"
-                  className="logout-btn"
-                  onClick={handleDisableLock}
-                >
-                  Disable App Lock
-                </button>
-              </>
+          <div className="profile-action-grid">
+            {!isAppLockEnabled() ? (
+              <button
+                type="button"
+                className="action-tile"
+                onClick={() => setShowEnableLock(true)}
+              >
+                <i className="bi bi-shield-lock"></i>
+                <span>Lock App</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="action-tile active-tile"
+                onClick={() => setShowPinModal(true)}
+              >
+                <i className="bi bi-key"></i>
+                <span>Change PIN</span>
+              </button>
             )}
+
+            <button
+              type="button"
+              className="action-tile"
+              onClick={() => setShowPasswordModal(true)}
+            >
+              <i className="bi bi-shield-check"></i>
+              <span>Password</span>
+            </button>
 
             {!isEditing ? (
               <button
                 type="button"
-                className="edit-btn"
-                onClick={() => setIsEditing(true)}
+                className="action-tile"
+                onClick={() => {
+                  setFormData({
+                    name: user.name || "",
+                    number: user.number || "",
+                  });
+                  setIsEditing(true);
+                }}
               >
-                Edit Profile
+                <i className="bi bi-pencil"></i>
+                <span>Edit Info</span>
               </button>
             ) : (
-              <>
-                <button type="submit" className="save-btn">
-                  Save
-                </button>
-                <button
-                  type="button"
-                  className="cancel-link"
-                  onClick={() => setIsEditing(false)}
-                >
-                  Cancel
-                </button>
-              </>
+              <button type="submit" className="action-tile save-tile">
+                <i className="bi bi-check-lg"></i>
+                <span>Save</span>
+              </button>
             )}
-            <div className="security-section">
-              {/* <h4>App Lock</h4> */}
 
-              {!isAppLockEnabled() ? (
-                <button
-                  type="button"
-                  className="pwd-btn"
-                  onClick={() => setShowEnableLock(true)}
-                >
-                  Enable App Lock
-                </button>
-              ) : (
-                <>
-                  <button
-                    type="button"
-                    className="pwd-btn"
-                    onClick={() => setShowPinModal(true)}
-                  >
-                    Change App Lock PIN
-                  </button>
-
-                  <button
-                    type="button"
-                    className="logout-btn"
-                    onClick={handleDisableLock}
-                  >
-                    Disable App Lock
-                  </button>
-                </>
-              )}
-            </div>
             <button
               type="button"
-              className="pwd-btn"
-              onClick={() => setShowPasswordModal(true)}
+              className="action-tile logout-tile"
+              onClick={handleLogout}
             >
-              Security & Password
-            </button>
-
-            <button className="logout-btn" onClick={handleLogout}>
-              Logout Account
+              <i className="bi bi-box-arrow-right"></i>
+              <span>Logout</span>
             </button>
           </div>
+
+          {isAppLockEnabled() && (
+            <button
+              type="button"
+              className="disable-lock-link"
+              onClick={handleDisableLock}
+            >
+              Disable App Lock
+            </button>
+          )}
         </form>
       </div>
+
+      {/* ENABLE LOCK MODAL */}
       <AnimatePresence>
         {showEnableLock && (
           <motion.div className="modal-overlay">
             <motion.div className="modal-content">
               <h3>Enable App Lock</h3>
-
               <input
                 type="password"
                 inputMode="numeric"
@@ -253,22 +235,9 @@ const Profile = () => {
                 value={newPin}
                 onChange={(e) => setNewPin(e.target.value)}
               />
-
-              <button
-                className="save-btn"
-                onClick={() => {
-                  if (newPin.length !== 4) {
-                    return showAlert("PIN must be 4 digits", "error");
-                  }
-                  enableAppLock(newPin);
-                  setNewPin("");
-                  setShowEnableLock(false);
-                  showAlert("App Lock enabled", "success");
-                }}
-              >
+              <button className="save-btn" onClick={handleEnableLock}>
                 Enable
               </button>
-
               <button
                 className="cancel-link"
                 onClick={() => setShowEnableLock(false)}
@@ -283,40 +252,36 @@ const Profile = () => {
       {/* CHANGE PIN MODAL */}
       <AnimatePresence>
         {showPinModal && (
-          <motion.div
-            className="modal-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
+          <motion.div className="modal-overlay">
             <motion.div className="modal-content">
               <h3>Change App Lock PIN</h3>
-              <div className="modal-step">
-                <input
-                  type="password"
-                  placeholder="Current PIN"
-                  value={pinData.oldPin}
-                  onChange={(e) =>
-                    setPinData({ ...pinData, oldPin: e.target.value })
-                  }
-                />
-                <input
-                  type="password"
-                  placeholder="New PIN"
-                  value={pinData.newPin}
-                  onChange={(e) =>
-                    setPinData({ ...pinData, newPin: e.target.value })
-                  }
-                />
-                <button className="save-btn" onClick={handleChangePin}>
-                  Update PIN
-                </button>
-                <button
-                  className="cancel-link"
-                  onClick={() => setShowPinModal(false)}
-                >
-                  Cancel
-                </button>
-              </div>
+              <input
+                type="password"
+                inputMode="numeric"
+                placeholder="Current PIN"
+                value={pinData.oldPin}
+                onChange={(e) =>
+                  setPinData({ ...pinData, oldPin: e.target.value })
+                }
+              />
+              <input
+                type="password"
+                inputMode="numeric"
+                placeholder="New PIN"
+                value={pinData.newPin}
+                onChange={(e) =>
+                  setPinData({ ...pinData, newPin: e.target.value })
+                }
+              />
+              <button className="save-btn" onClick={handleChangePin}>
+                Update PIN
+              </button>
+              <button
+                className="cancel-link"
+                onClick={() => setShowPinModal(false)}
+              >
+                Cancel
+              </button>
             </motion.div>
           </motion.div>
         )}
@@ -325,21 +290,19 @@ const Profile = () => {
       {/* PASSWORD RESET MODAL */}
       <AnimatePresence>
         {showPasswordModal && (
-          <motion.div
-            className="modal-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
+          <motion.div className="modal-overlay">
             <motion.div className="modal-content">
               <h3>Reset Password</h3>
               <p>{user.securityQuestion || "Answer your security question"}</p>
-
               <form onSubmit={handlePasswordReset} className="modal-step">
                 <input
                   placeholder="Your Answer"
                   value={securityData.answer}
                   onChange={(e) =>
-                    setSecurityData({ ...securityData, answer: e.target.value })
+                    setSecurityData({
+                      ...securityData,
+                      answer: e.target.value,
+                    })
                   }
                 />
                 <input
