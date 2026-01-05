@@ -1,29 +1,64 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import appIcon from "../assets/dhanasethuIconWithName.png";
+import { useEffect, useState } from "react";
 import "./Home.css";
 
 const Home = () => {
+  const navigate = useNavigate();
   const isLoggedIn = Boolean(localStorage.getItem("token"));
+
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  /* Redirect logged-in users */
+  useEffect(() => {
+    if (isLoggedIn) {
+      navigate("/app-lock", { replace: true });
+    }
+  }, [isLoggedIn, navigate]);
+
+  /* Capture install prompt */
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+
+    window.addEventListener("beforeinstallprompt", handler);
+
+    window.addEventListener("appinstalled", () => {
+      setIsInstalled(true);
+      setInstallPrompt(null);
+    });
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const choice = await installPrompt.userChoice;
+    if (choice.outcome === "accepted") {
+      setInstallPrompt(null);
+    }
+  };
 
   return (
     <div className="home-wrapper">
       {/* Hero Section */}
       <section className="hero-section">
         <div className="hero-glow"></div>
+
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
           className="hero-content"
         >
-          <div className="home-logo-wrap">
-            <img
-              src={appIcon}
-              alt="DhanaSethu Logo"
-              className="home-brand-icon"
-            />
-          </div>
+          <img src={appIcon} alt="DhanaSethu" className="home-brand-icon" />
 
           <h1 className="hero-title">
             Master Your Money. <br />
@@ -36,16 +71,7 @@ const Home = () => {
           </p>
 
           <div className="hero-btns">
-            {isLoggedIn ? (
-              <>
-                <Link to="/dashboard" className="btn-glass">
-                  Dashboard
-                </Link>
-                <Link to="/add-transaction" className="btn-primary-new">
-                  Quick Add
-                </Link>
-              </>
-            ) : (
+            {!isLoggedIn && (
               <>
                 <Link to="/login" className="btn-primary-new">
                   Get Started
@@ -54,6 +80,16 @@ const Home = () => {
                   Create Account
                 </Link>
               </>
+            )}
+
+            {/* INSTALL BUTTON */}
+            {!isInstalled && installPrompt && (
+              <button
+                className="btn-glass install-btn"
+                onClick={handleInstallClick}
+              >
+                <i class="bi bi-download"></i>Install App
+              </button>
             )}
           </div>
 

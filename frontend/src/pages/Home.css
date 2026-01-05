@@ -262,3 +262,15 @@
   padding: 60px 24px;
   border-top: 1px solid var(--glass-border);
 }
+.install-btn {
+  cursor: pointer;
+  font-weight: 700;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+}
+
+.install-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 30px rgba(181, 136, 99, 0.25);
+}

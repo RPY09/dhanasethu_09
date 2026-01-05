@@ -9,6 +9,13 @@ import {
   changeAppLockPin,
   disableAppLock,
 } from "../utils/appLock";
+import {
+  isBiometricSupported,
+  registerBiometric,
+  disableBiometric,
+  isBiometricEnabled,
+} from "../utils/biometric";
+
 import "./Profile.css";
 
 const Profile = () => {
@@ -208,6 +215,27 @@ const Profile = () => {
               <span>Logout</span>
             </button>
           </div>
+          {isBiometricSupported() && (
+            <button
+              className="action-tile"
+              onClick={async () => {
+                if (isBiometricEnabled()) {
+                  disableBiometric();
+                  showAlert("Biometric disabled", "info");
+                } else {
+                  await registerBiometric();
+                  showAlert("Biometric enabled", "success");
+                }
+              }}
+            >
+              <i className="bi bi-fingerprint"></i>
+              <span>
+                {isBiometricEnabled()
+                  ? "Disable Biometric"
+                  : "Enable Biometric"}
+              </span>
+            </button>
+          )}
 
           {isAppLockEnabled() && (
             <button
