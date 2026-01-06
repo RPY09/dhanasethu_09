@@ -60,7 +60,7 @@
 }
 
 /* Bottom Floating Navigation */
-.zira-bottom-nav {
+/* .zira-bottom-nav {
   position: fixed;
   bottom: 100px;
   left: 20px;
@@ -74,7 +74,7 @@
   padding: 0 10px;
   box-shadow: 0 15px 35px rgba(16, 35, 42, 0.3);
   z-index: 2000;
-}
+} */
 
 .zira-nav-item {
   display: flex;
@@ -142,6 +142,7 @@
   left: 20px;
   right: 20px;
   height: 70px;
+  margin-bottom: 45px;
   background: var(--bg-deep);
   border-radius: 24px;
   display: flex;
@@ -158,7 +159,8 @@
 body {
   margin: 0;
   padding: 0;
-  padding-bottom: 110px;
+  /* padding-bottom: 110px; */
+
   width: 100vw;
   overflow-x: hidden;
   overscroll-behavior-y: none;

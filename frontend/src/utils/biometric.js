@@ -1,3 +1,11 @@
+/* ---------- helpers ---------- */
+const bufferToBase64 = (buffer) =>
+  btoa(String.fromCharCode(...new Uint8Array(buffer)));
+
+const base64ToBuffer = (base64) =>
+  Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+
+/* ---------- capability ---------- */
 export const isBiometricSupported = () => {
   return (
     window.PublicKeyCredential &&
@@ -5,7 +13,15 @@ export const isBiometricSupported = () => {
   );
 };
 
+export const isBiometricEnabled = () =>
+  localStorage.getItem("biometric_enabled") === "true";
+
+/* ---------- register ---------- */
 export const registerBiometric = async () => {
+  if (!isBiometricSupported()) {
+    throw new Error("Biometric not supported");
+  }
+
   const credential = await navigator.credentials.create({
     publicKey: {
       challenge: crypto.getRandomValues(new Uint8Array(32)),
@@ -25,34 +41,38 @@ export const registerBiometric = async () => {
   });
 
   localStorage.setItem("biometric_enabled", "true");
-  localStorage.setItem("biometric_id", credential.id);
+  localStorage.setItem("biometric_raw_id", bufferToBase64(credential.rawId));
 };
 
+/* ---------- verify ---------- */
 export const verifyBiometric = async () => {
-  const credentialId = localStorage.getItem("biometric_id");
-  if (!credentialId) return false;
+  try {
+    const rawIdBase64 = localStorage.getItem("biometric_raw_id");
+    if (!rawIdBase64) return false;
 
-  const assertion = await navigator.credentials.get({
-    publicKey: {
-      challenge: crypto.getRandomValues(new Uint8Array(32)),
-      allowCredentials: [
-        {
-          id: Uint8Array.from(atob(credentialId), (c) => c.charCodeAt(0)),
-          type: "public-key",
-        },
-      ],
-      userVerification: "required",
-      timeout: 60000,
-    },
-  });
+    const assertion = await navigator.credentials.get({
+      publicKey: {
+        challenge: crypto.getRandomValues(new Uint8Array(32)),
+        allowCredentials: [
+          {
+            id: base64ToBuffer(rawIdBase64),
+            type: "public-key",
+          },
+        ],
+        userVerification: "required",
+        timeout: 60000,
+      },
+    });
 
-  return !!assertion;
+    return !!assertion;
+  } catch {
+    // user cancelled / biometric failed
+    return false;
+  }
 };
 
-export const isBiometricEnabled = () =>
-  localStorage.getItem("biometric_enabled") === "true";
-
+/* ---------- disable ---------- */
 export const disableBiometric = () => {
   localStorage.removeItem("biometric_enabled");
-  localStorage.removeItem("biometric_id");
+  localStorage.removeItem("biometric_raw_id");
 };

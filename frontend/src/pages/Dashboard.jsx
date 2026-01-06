@@ -31,20 +31,6 @@ const Dashboard = () => {
   const [isColdStart, setIsColdStart] = useState(false);
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
 
-  /* ------------------ Cache First ------------------ */
-  useEffect(() => {
-    const cachedTx = localStorage.getItem("dashboard_cache");
-    if (cachedTx) {
-      setTransactions(JSON.parse(cachedTx));
-      setLoading(false);
-    }
-
-    const cachedLoan = localStorage.getItem("loan_cache");
-    if (cachedLoan) {
-      setLoanSummary(JSON.parse(cachedLoan));
-    }
-  }, []);
-
   /* ------------------ Fetch Loans ------------------ */
   useEffect(() => {
     const fetchLoans = async () => {
@@ -126,6 +112,48 @@ const Dashboard = () => {
     () => transactions.slice(0, 5),
     [transactions]
   );
+  /* ------------------ Cache First ------------------ */
+  const dashboardSummary = useMemo(
+    () => ({
+      balance,
+      cashBalance,
+      bankBalance,
+      monthlyIncome,
+      monthlyExpense,
+      monthlyInvest,
+      loansGiven: loanSummary.lent,
+      borrowed: loanSummary.borrowed,
+    }),
+    [
+      balance,
+      cashBalance,
+      bankBalance,
+      monthlyIncome,
+      monthlyExpense,
+      monthlyInvest,
+      loanSummary,
+    ]
+  );
+
+  useEffect(() => {
+    const cached = localStorage.getItem("dashboard_summary");
+    if (cached) {
+      const data = JSON.parse(cached);
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (loading) return;
+
+    localStorage.setItem(
+      "dashboard_summary",
+      JSON.stringify({
+        ...dashboardSummary,
+        updatedAt: Date.now(),
+      })
+    );
+  }, [dashboardSummary, loading]);
 
   /* ------------------ Skeleton ------------------ */
   const DashboardSkeleton = () => (

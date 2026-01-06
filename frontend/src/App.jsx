@@ -5,6 +5,7 @@ import AppRoutes from "./routes/AppRoutes";
 import ScrollToTop from "./components/ScrollToTop";
 import api from "./api/axios";
 import { lockApp, isAppUnlocked, isAppLockEnabled } from "./utils/appLock";
+import LockGate from "./components/LockGate";
 
 function App() {
   const navigate = useNavigate();
@@ -48,30 +49,6 @@ function App() {
   }, []);
 
   /* AUTH + LOCK GUARD (MOST IMPORTANT) */
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-
-    // Logged in users should NEVER see Home
-    if (token && location.pathname === "/") {
-      navigate("/app-lock", { replace: true });
-      return;
-    }
-
-    // If app is locked, force AppLock
-    if (
-      token &&
-      isAppLockEnabled() &&
-      !isAppUnlocked() &&
-      location.pathname !== "/app-lock"
-    ) {
-      navigate("/app-lock", { replace: true });
-    }
-
-    // Not logged in → no access to app pages
-    if (!token && location.pathname !== "/" && location.pathname !== "/login") {
-      navigate("/", { replace: true });
-    }
-  }, [location.pathname, navigate]);
 
   /* Token refresh */
   useEffect(() => {
@@ -88,7 +65,9 @@ function App() {
     <>
       <ScrollToTop />
       <Navbar />
-      <AppRoutes />
+      <LockGate>
+        <AppRoutes />
+      </LockGate>
     </>
   );
 }
