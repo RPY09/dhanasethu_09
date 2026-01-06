@@ -24,7 +24,7 @@ const detectPaymentMode = (t = {}) => {
 /* ------------------ Component ------------------ */
 const Dashboard = () => {
   const { convert, displayCountry, symbol } = useCurrency();
-
+  const [summary, setSummary] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [loanSummary, setLoanSummary] = useState({ lent: 0, borrowed: 0 });
 
@@ -87,10 +87,10 @@ const Dashboard = () => {
         .sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
 
       setTransactions(sorted);
-      localStorage.setItem("dashboard_cache", JSON.stringify(sorted));
+      // localStorage.setItem("dashboard_cache", JSON.stringify(sorted));
     } catch {
-      const cached = localStorage.getItem("dashboard_cache");
-      if (cached) setTransactions(JSON.parse(cached));
+      // const cached = localStorage.getItem("dashboard_cache");
+      // if (cached) setTransactions(JSON.parse(cached));
     } finally {
       if (Date.now() - start > 4000) setIsColdStart(true);
       setLoading(false);
@@ -144,6 +144,42 @@ const Dashboard = () => {
     [transactions]
   );
   /* ------------------ Cache First ------------------ */
+  useEffect(() => {
+    const cached = localStorage.getItem("dashboard_summary");
+    if (cached) {
+      setSummary(JSON.parse(cached));
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!loading) {
+      const newSummary = {
+        balance,
+        cashBalance,
+        bankBalance,
+        monthlyIncome,
+        monthlyExpense,
+        monthlyInvest,
+        loansGiven: loanSummary.lent,
+        borrowed: loanSummary.borrowed,
+        updatedAt: Date.now(),
+      };
+
+      setSummary(newSummary);
+      localStorage.setItem("dashboard_summary", JSON.stringify(newSummary));
+    }
+  }, [
+    loading,
+    balance,
+    cashBalance,
+    bankBalance,
+    monthlyIncome,
+    monthlyExpense,
+    monthlyInvest,
+    loanSummary,
+  ]);
+
   const dashboardSummary = useMemo(
     () => ({
       balance,
@@ -166,36 +202,37 @@ const Dashboard = () => {
     ]
   );
 
-  useEffect(() => {
-    const cached = localStorage.getItem("dashboard_summary");
-    if (cached) {
-      const data = JSON.parse(cached);
-      setLoading(false);
-    }
-  }, []);
+  const effectiveBalance = summary && loading ? summary.balance : balance;
 
-  useEffect(() => {
-    if (loading) return;
+  const effectiveIncome =
+    summary && loading ? summary.monthlyIncome : monthlyIncome;
 
-    localStorage.setItem(
-      "dashboard_summary",
-      JSON.stringify({
-        ...dashboardSummary,
-        updatedAt: Date.now(),
-      })
-    );
-  }, [dashboardSummary, loading]);
+  const effectiveExpense =
+    summary && loading ? summary.monthlyExpense : monthlyExpense;
+
+  const effectiveInvest =
+    summary && loading ? summary.monthlyInvest : monthlyInvest;
+
+  const effectiveCash = summary && loading ? summary.cashBalance : cashBalance;
+
+  const effectiveBank = summary && loading ? summary.bankBalance : bankBalance;
+
+  const effectiveLent =
+    summary && loading ? summary.loansGiven : loanSummary.lent;
+
+  const effectiveBorrowed =
+    summary && loading ? summary.borrowed : loanSummary.borrowed;
 
   /* ------------------ Animated Numbers ------------------ */
-  const animatedBalance = useAnimatedNumber(convert(balance));
-  const animatedIncome = useAnimatedNumber(convert(monthlyIncome));
-  const animatedExpense = useAnimatedNumber(convert(monthlyExpense));
-  const animatedInvest = useAnimatedNumber(convert(monthlyInvest));
+  const animatedBalance = useAnimatedNumber(convert(effectiveBalance));
+  const animatedIncome = useAnimatedNumber(convert(effectiveIncome));
+  const animatedExpense = useAnimatedNumber(convert(effectiveExpense));
+  const animatedInvest = useAnimatedNumber(convert(effectiveInvest));
 
-  const animatedCash = useAnimatedNumber(convert(cashBalance));
-  const animatedBank = useAnimatedNumber(convert(bankBalance));
-  const animatedLent = useAnimatedNumber(convert(loanSummary.lent));
-  const animatedBorrowed = useAnimatedNumber(convert(loanSummary.borrowed));
+  const animatedCash = useAnimatedNumber(convert(effectiveCash));
+  const animatedBank = useAnimatedNumber(convert(effectiveBank));
+  const animatedLent = useAnimatedNumber(convert(effectiveLent));
+  const animatedBorrowed = useAnimatedNumber(convert(effectiveBorrowed));
 
   /* ------------------ Skeleton ------------------ */
   const DashboardSkeleton = () => (

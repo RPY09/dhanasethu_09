@@ -22,7 +22,7 @@ import "./AppLock.css";
 const AppLock = () => {
   const navigate = useNavigate();
   const { showAlert } = useAlert();
-
+  const isColdStart = !sessionStorage.getItem("APP_ACTIVE");
   const [pin, setPin] = useState("");
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
   const [password, setPassword] = useState("");
@@ -34,43 +34,49 @@ const AppLock = () => {
   const [biometricAttempts, setBiometricAttempts] = useState(0);
 
   useEffect(() => {
+    sessionStorage.setItem("APP_ACTIVE", "true");
+  }, []);
+
+  useEffect(() => {
     if (!isAppLockEnabled()) {
       navigate("/dashboard", { replace: true });
     }
   }, [navigate]);
 
   useEffect(() => {
-    if (
-      isBiometricSupported() &&
-      isBiometricEnabled() &&
-      biometricAttempts < MAX_BIOMETRIC_ATTEMPTS &&
-      !showPin
-    ) {
-      handleBiometricUnlock();
-    } else {
-      setShowPin(true); // fallback to PIN
+    setShowPin(true);
+
+    if (isColdStart && isBiometricSupported() && isBiometricEnabled()) {
+      setTimeout(() => {
+        handleBiometricUnlock(true);
+      }, 300);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  /* Keypad input */ const isVerifyingRef = useRef(false);
-  const handleBiometricUnlock = async () => {
+  /* Keypad input */
+  const isVerifyingRef = useRef(false);
+
+  const handleBiometricUnlock = async (silent = false) => {
     try {
       const ok = await verifyBiometric();
       if (!ok) throw new Error();
 
-      unlockApp(); // session only
+      unlockApp();
       navigate("/dashboard", { replace: true });
     } catch {
-      const attempts = biometricAttempts + 1;
-      setBiometricAttempts(attempts);
+      if (!silent) {
+        const attempts = biometricAttempts + 1;
+        setBiometricAttempts(attempts);
 
-      if (attempts >= MAX_BIOMETRIC_ATTEMPTS) {
-        showAlert("Biometric failed. Use PIN", "info");
-        setShowPin(true);
-      } else {
-        showAlert("Biometric failed. Try again", "error");
+        if (attempts >= MAX_BIOMETRIC_ATTEMPTS) {
+          showAlert("Biometric failed. Use PIN", "info");
+        } else {
+          showAlert("Biometric failed. Try again", "error");
+        }
       }
+
+      // ALWAYS allow manual retry
+      setShowPin(true);
     }
   };
 
@@ -182,7 +188,14 @@ const AppLock = () => {
                 </button>
               ))}
 
-              <button className="key-btn icon-mode" disabled />
+              {isBiometricSupported() && isBiometricEnabled() && (
+                <button
+                  className="key-btn icon-mode"
+                  onClick={handleBiometricUnlock}
+                >
+                  <i className="bi bi-fingerprint"></i>
+                </button>
+              )}
 
               <button className="key-btn" onClick={() => handleKeyPress("0")}>
                 0

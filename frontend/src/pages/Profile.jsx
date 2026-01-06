@@ -218,7 +218,13 @@ const Profile = () => {
           {isBiometricSupported() && (
             <button
               className="action-tile"
+              disabled={!isAppLockEnabled()}
               onClick={async () => {
+                if (!isAppLockEnabled()) {
+                  showAlert("Enable App Lock first", "error");
+                  return;
+                }
+
                 if (isBiometricEnabled()) {
                   disableBiometric();
                   showAlert("Biometric disabled", "info");
