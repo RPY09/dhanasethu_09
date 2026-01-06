@@ -130,15 +130,13 @@ function App() {
           window.dispatchEvent(new Event("loans:changed"));
           window.dispatchEvent(new Event("transactions:changed"));
         } catch {
-          break; // stop retry if backend still failing
+          break;
         }
       }
     };
 
-    // Run on load
     syncLoans();
 
-    // Run when online
     window.addEventListener("online", syncLoans);
 
     return () => window.removeEventListener("online", syncLoans);
