@@ -11,7 +11,7 @@ const LockGate = ({ children }) => {
 
   // App lock enabled & still locked → ONLY AppLock allowed
   if (
-    (isAppLockEnabled() || isBiometricEnabled()) &&
+    isAppLockEnabled() &&
     !isAppUnlocked() &&
     location.pathname !== "/app-lock"
   ) {
