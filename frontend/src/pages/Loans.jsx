@@ -25,6 +25,13 @@ const Loans = () => {
     endDate: "",
     note: "",
   });
+  const LOAN_QUEUE_KEY = "unsynced_loans";
+
+  const getLoanQueue = () =>
+    JSON.parse(localStorage.getItem(LOAN_QUEUE_KEY)) || [];
+
+  const saveLoanQueue = (q) =>
+    localStorage.setItem(LOAN_QUEUE_KEY, JSON.stringify(q));
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -96,26 +103,40 @@ const Loans = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.contact) return showAlert("Phone number is required", "warning");
-    setLoading(true);
-    try {
-      const payload = {
-        ...form,
-        amount: String(form.amount),
-        interestRate: String(form.interestRate),
-        interestAmount: String(interestAmount),
-        totalAmount: String(totalAmount),
-        dueDate: form.endDate,
-      };
 
+    setLoading(true);
+
+    const payload = {
+      ...form,
+      amount: String(form.amount),
+      interestRate: String(form.interestRate),
+      interestAmount: String(interestAmount),
+      totalAmount: String(totalAmount),
+      dueDate: form.endDate,
+    };
+
+    const localLoan = {
+      id: crypto.randomUUID(),
+      payload,
+      createdAt: Date.now(),
+    };
+
+    const queue = getLoanQueue();
+    queue.push(localLoan);
+    saveLoanQueue(queue);
+
+    const targetTab = form.role === "borrowed" ? "borrowed" : "lent";
+    navigate("/notifications", { state: { activeTab: targetTab } });
+
+    try {
       await addLoan(payload);
-      showAlert("New loan entry created.", "success");
+
+      const updatedQueue = getLoanQueue().filter((l) => l.id !== localLoan.id);
+      saveLoanQueue(updatedQueue);
+
       window.dispatchEvent(new Event("loans:changed"));
       window.dispatchEvent(new Event("transactions:changed"));
-
-      const targetTab = form.role === "borrowed" ? "borrowed" : "lent";
-      navigate("/notifications", { state: { activeTab: targetTab } });
-    } catch (err) {
-      showAlert("Error saving loan.", "error");
+    } catch {
     } finally {
       setLoading(false);
     }

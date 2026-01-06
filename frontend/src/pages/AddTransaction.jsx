@@ -23,6 +23,11 @@ const AddTransaction = () => {
     date: today,
     note: "",
   });
+  const QUEUE_KEY = "unsynced_transactions";
+
+  const getQueue = () => JSON.parse(localStorage.getItem(QUEUE_KEY)) || [];
+
+  const saveQueue = (q) => localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -30,22 +35,33 @@ const AddTransaction = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true); // Start loading
+    setLoading(true);
 
     const payload = {
       ...form,
       category: form.category.trim().toLowerCase(),
     };
 
+    const localTx = {
+      id: crypto.randomUUID(),
+      payload,
+      createdAt: Date.now(),
+    };
+
+    const queue = getQueue();
+    queue.push(localTx);
+    saveQueue(queue);
+
+    navigate("/transactions");
+
     try {
       await addTransaction(payload);
-      showAlert("Transaction saved successfully!", "success");
-      window.dispatchEvent(new Event("transactions:changed"));
-      navigate("/transactions");
+
+      const updatedQueue = getQueue().filter((t) => t.id !== localTx.id);
+      saveQueue(updatedQueue);
     } catch (err) {
-      showAlert("Failed to add transaction. Try again.", "error");
     } finally {
-      setLoading(false); // Stop loading
+      setLoading(false);
     }
   };
 

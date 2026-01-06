@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
 import { getTransactions } from "../api/transaction.api";
 import { getLoanSummary } from "../api/loan.api";
@@ -24,7 +24,7 @@ const detectPaymentMode = (t = {}) => {
 /* ------------------ Component ------------------ */
 const Dashboard = () => {
   const { convert, displayCountry, symbol } = useCurrency();
-  const [summary, setSummary] = useState(null);
+
   const [transactions, setTransactions] = useState([]);
   const [loanSummary, setLoanSummary] = useState({ lent: 0, borrowed: 0 });
 
@@ -32,43 +32,89 @@ const Dashboard = () => {
   const [isColdStart, setIsColdStart] = useState(false);
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
 
+  // Read cached summary from localStorage at init (may be null)
+  const [summary, setSummary] = useState(() => {
+    try {
+      const cached = localStorage.getItem("dashboard_summary");
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+
   /* ------------------ Count Animation Hook ------------------ */
-  const useAnimatedNumber = (value, duration = 0.8) => {
-    const [display, setDisplay] = useState(value);
+  function useAnimatedNumber(value, duration = 0.8) {
+    // Ensure numeric input
+    const target = Number(value) || 0;
+    const firstRenderRef = useRef(true);
+    const prevRef = useRef(target);
+    const [display, setDisplay] = useState(target);
 
     useEffect(() => {
-      const controls = animate(display, value, {
-        duration,
-        ease: "easeOut",
-        onUpdate: (v) => setDisplay(v),
-      });
+      if (firstRenderRef.current) {
+        setDisplay(target);
+        prevRef.current = target;
+        firstRenderRef.current = false;
+        return;
+      }
 
-      return () => controls.stop();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [value]);
+      const from = Number(prevRef.current) || 0;
+      const to = Number(target) || 0;
+
+      if (from === to) {
+        prevRef.current = to;
+        setDisplay(to);
+        return;
+      }
+
+      if (typeof motionAnimate === "function") {
+        const controls = motionAnimate(from, to, {
+          duration,
+          ease: [0.22, 0.61, 0.36, 1],
+          onUpdate: (v) => setDisplay(v),
+        });
+        prevRef.current = to;
+        return () => controls.stop();
+      }
+
+      let rafId = 0;
+      const start = performance.now();
+      const diff = to - from;
+      const step = (now) => {
+        const elapsed = (now - start) / 1000;
+        const t = Math.min(elapsed / duration, 1);
+
+        const eased = 1 - Math.pow(1 - t, 3);
+        setDisplay(from + diff * eased);
+        if (t < 1) rafId = requestAnimationFrame(step);
+      };
+      rafId = requestAnimationFrame(step);
+      prevRef.current = to;
+      return () => cancelAnimationFrame(rafId);
+    }, [value, duration]);
 
     return display;
-  };
+  }
 
+  // When modal open prevent page scroll
   useEffect(() => {
     if (showCurrencyDropdown) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
     }
-
     return () => {
       document.body.style.overflow = "";
     };
   }, [showCurrencyDropdown]);
 
-  /* ------------------ Fetch Loans ------------------ */
+  /* ------------------ Fetch Loans (cache first for loan summary) ------------------ */
   useEffect(() => {
     const fetchLoans = async () => {
       try {
         const data = await getLoanSummary();
-        setLoanSummary(data);
-        localStorage.setItem("loan_cache", JSON.stringify(data));
+        setLoanSummary(data || { lent: 0, borrowed: 0 });
+        localStorage.setItem("loan_cache", JSON.stringify(data || {}));
       } catch {
         const cached = localStorage.getItem("loan_cache");
         if (cached) setLoanSummary(JSON.parse(cached));
@@ -77,164 +123,124 @@ const Dashboard = () => {
     fetchLoans();
   }, []);
 
+  /* ------------------ Summary computation helper ------------------ */
+  const computeSummaryFrom = (txs = [], loanSum = { lent: 0, borrowed: 0 }) => {
+    const now = new Date();
+    const month = now.getMonth();
+    const year = now.getFullYear();
+
+    let monthlyIncome = 0;
+    let monthlyExpense = 0;
+    let monthlyInvest = 0;
+    let cash = 0;
+    let bank = 0;
+
+    (Array.isArray(txs) ? txs : []).forEach((t) => {
+      const d = new Date(t.date);
+      const amt = parseNumber(t.amount);
+      const type = (t.type || "").toLowerCase();
+
+      // monthly stats (use transaction date)
+      if (d.getMonth() === month && d.getFullYear() === year) {
+        if (type === "income") monthlyIncome += amt;
+        else if (type === "expense") monthlyExpense += amt;
+        else if (type === "investment" || type === "invest")
+          monthlyInvest += amt;
+      }
+
+      // balance
+      const signed = type === "income" ? amt : -amt;
+      if (detectPaymentMode(t).includes("cash")) cash += signed;
+      else bank += signed;
+    });
+
+    return {
+      balance: cash + bank,
+      cashBalance: cash,
+      bankBalance: bank,
+      monthlyIncome,
+      monthlyExpense,
+      monthlyInvest,
+      loansGiven: loanSum.lent || 0,
+      borrowed: loanSum.borrowed || 0,
+      updatedAt: Date.now(),
+    };
+  };
+
   /* ------------------ Fetch Transactions ------------------ */
   const fetchTransactions = useCallback(async () => {
     const start = Date.now();
     try {
       const data = await getTransactions();
-      const sorted = (Array.isArray(data) ? data : [])
+      const arr = Array.isArray(data) ? data : [];
+      const sorted = arr
         .filter((t) => t?.date && !isNaN(Date.parse(t.date)))
         .sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
 
       setTransactions(sorted);
-      // localStorage.setItem("dashboard_cache", JSON.stringify(sorted));
-    } catch {
-      // const cached = localStorage.getItem("dashboard_cache");
-      // if (cached) setTransactions(JSON.parse(cached));
+
+      // compute new summary (use current loanSummary)
+      const newSummary = computeSummaryFrom(sorted, loanSummary);
+      setSummary(newSummary);
+      try {
+        localStorage.setItem("dashboard_summary", JSON.stringify(newSummary));
+      } catch (e) {
+        // ignore storage failures
+      }
+    } catch (err) {
+      console.warn("Failed to fetch transactions:", err);
     } finally {
       if (Date.now() - start > 4000) setIsColdStart(true);
       setLoading(false);
     }
-  }, []);
+  }, [loanSummary]);
 
   useEffect(() => {
     fetchTransactions();
   }, [fetchTransactions]);
 
-  /* ------------------ Calculations ------------------ */
-  const now = new Date();
-  const month = now.getMonth();
-  const year = now.getFullYear();
-
-  const { monthlyIncome, monthlyExpense, monthlyInvest } = useMemo(() => {
-    return transactions.reduce(
-      (acc, t) => {
-        const d = new Date(t.date);
-        if (d.getMonth() === month && d.getFullYear() === year) {
-          const amt = parseNumber(t.amount);
-          const type = (t.type || "").toLowerCase();
-          if (type === "income") acc.monthlyIncome += amt;
-          else if (type === "expense") acc.monthlyExpense += amt;
-          else if (type === "investment" || type === "invest")
-            acc.monthlyInvest += amt;
-        }
-        return acc;
-      },
-      { monthlyIncome: 0, monthlyExpense: 0, monthlyInvest: 0 }
-    );
-  }, [transactions, month, year]);
-
-  const { balance, cashBalance, bankBalance } = useMemo(() => {
-    let cash = 0;
-    let bank = 0;
-
-    transactions.forEach((t) => {
-      const amt = parseNumber(t.amount);
-      const signed = (t.type || "").toLowerCase() === "income" ? amt : -amt;
-      detectPaymentMode(t).includes("cash")
-        ? (cash += signed)
-        : (bank += signed);
-    });
-
-    return { balance: cash + bank, cashBalance: cash, bankBalance: bank };
-  }, [transactions]);
-
-  const recentTransactions = useMemo(
-    () => transactions.slice(0, 5),
-    [transactions]
-  );
-  /* ------------------ Cache First ------------------ */
-  useEffect(() => {
-    const cached = localStorage.getItem("dashboard_summary");
-    if (cached) {
-      setSummary(JSON.parse(cached));
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!loading) {
-      const newSummary = {
-        balance,
-        cashBalance,
-        bankBalance,
-        monthlyIncome,
-        monthlyExpense,
-        monthlyInvest,
-        loansGiven: loanSummary.lent,
-        borrowed: loanSummary.borrowed,
-        updatedAt: Date.now(),
-      };
-
-      setSummary(newSummary);
-      localStorage.setItem("dashboard_summary", JSON.stringify(newSummary));
-    }
-  }, [
-    loading,
-    balance,
-    cashBalance,
-    bankBalance,
-    monthlyIncome,
-    monthlyExpense,
-    monthlyInvest,
-    loanSummary,
-  ]);
-
-  const dashboardSummary = useMemo(
-    () => ({
-      balance,
-      cashBalance,
-      bankBalance,
-      monthlyIncome,
-      monthlyExpense,
-      monthlyInvest,
-      loansGiven: loanSummary.lent,
-      borrowed: loanSummary.borrowed,
-    }),
-    [
-      balance,
-      cashBalance,
-      bankBalance,
-      monthlyIncome,
-      monthlyExpense,
-      monthlyInvest,
-      loanSummary,
-    ]
-  );
-
-  const effectiveBalance = summary && loading ? summary.balance : balance;
-
-  const effectiveIncome =
-    summary && loading ? summary.monthlyIncome : monthlyIncome;
-
-  const effectiveExpense =
-    summary && loading ? summary.monthlyExpense : monthlyExpense;
-
-  const effectiveInvest =
-    summary && loading ? summary.monthlyInvest : monthlyInvest;
-
-  const effectiveCash = summary && loading ? summary.cashBalance : cashBalance;
-
-  const effectiveBank = summary && loading ? summary.bankBalance : bankBalance;
-
-  const effectiveLent =
-    summary && loading ? summary.loansGiven : loanSummary.lent;
-
-  const effectiveBorrowed =
-    summary && loading ? summary.borrowed : loanSummary.borrowed;
+  /* ------------------ Derived values (use cached summary if present) ------------------ */
+  const effectiveBalance = summary?.balance ?? 0;
+  const effectiveIncome = summary?.monthlyIncome ?? 0;
+  const effectiveExpense = summary?.monthlyExpense ?? 0;
+  const effectiveInvest = summary?.monthlyInvest ?? 0;
+  const effectiveCash = summary?.cashBalance ?? 0;
+  const effectiveBank = summary?.bankBalance ?? 0;
+  const effectiveLent = summary?.loansGiven ?? 0;
+  const effectiveBorrowed = summary?.borrowed ?? 0;
 
   /* ------------------ Animated Numbers ------------------ */
-  const animatedBalance = useAnimatedNumber(convert(effectiveBalance));
-  const animatedIncome = useAnimatedNumber(convert(effectiveIncome));
-  const animatedExpense = useAnimatedNumber(convert(effectiveExpense));
-  const animatedInvest = useAnimatedNumber(convert(effectiveInvest));
 
-  const animatedCash = useAnimatedNumber(convert(effectiveCash));
-  const animatedBank = useAnimatedNumber(convert(effectiveBank));
-  const animatedLent = useAnimatedNumber(convert(effectiveLent));
-  const animatedBorrowed = useAnimatedNumber(convert(effectiveBorrowed));
+  const animatedBalance = useAnimatedNumber(
+    convert(Number(effectiveBalance) || 0)
+  );
+  const animatedIncome = useAnimatedNumber(
+    convert(Number(effectiveIncome) || 0)
+  );
+  const animatedExpense = useAnimatedNumber(
+    convert(Number(effectiveExpense) || 0)
+  );
+  const animatedInvest = useAnimatedNumber(
+    convert(Number(effectiveInvest) || 0)
+  );
+  const animatedCash = useAnimatedNumber(convert(Number(effectiveCash) || 0));
+  const animatedBank = useAnimatedNumber(convert(Number(effectiveBank) || 0));
+  const animatedLent = useAnimatedNumber(convert(Number(effectiveLent) || 0));
+  const animatedBorrowed = useAnimatedNumber(
+    convert(Number(effectiveBorrowed) || 0)
+  );
 
-  /* ------------------ Skeleton ------------------ */
+  /* ------------------ Skeleton decision ------------------ */
+
+  const showSkeleton = loading && !summary;
+
+  /* ------------------ Recent transactions shown from live state (not cached summary) */
+  const recentTransactions = transactions.slice(0, 5);
+
+  /* ------------------ Render ------------------ */
+  const now = new Date();
+  const year = now.getFullYear();
+
   const DashboardSkeleton = () => (
     <>
       <div className="tx-primary-card">
@@ -290,7 +296,6 @@ const Dashboard = () => {
     </>
   );
 
-  /* ------------------ Render ------------------ */
   return (
     <motion.div
       className="tx-wrapper"
@@ -318,11 +323,10 @@ const Dashboard = () => {
         </div>
       )}
 
-      {loading ? (
+      {showSkeleton ? (
         <DashboardSkeleton />
       ) : (
         <>
-          {/* PRIMARY CARD */}
           <motion.div className="tx-primary-card" whileHover={{ scale: 1.01 }}>
             <div className="tx-balance-label">
               <span>OVERALL BALANCE</span>
@@ -345,28 +349,20 @@ const Dashboard = () => {
 
             <div className="tx-monthly-grid">
               {[
-                ["Monthly Income", monthlyIncome, "income"],
-                ["Expenses", monthlyExpense, "expense"],
-                ["Invested", monthlyInvest, "invest"],
+                ["Monthly Income", animatedIncome, "income"],
+                ["Expenses", animatedExpense, "expense"],
+                ["Invested", animatedInvest, "invest"],
               ].map(([label, val, cls]) => (
                 <div key={label} className="tx-month-stat">
                   <span>{label}</span>
                   <strong className={cls}>
-                    {symbol}{" "}
-                    {formatCurrency(
-                      label === "Monthly Income"
-                        ? animatedIncome
-                        : label === "Expenses"
-                          ? animatedExpense
-                          : animatedInvest
-                    )}
+                    {symbol} {formatCurrency(val)}
                   </strong>
                 </div>
               ))}
             </div>
           </motion.div>
 
-          {/* CASH / BANK */}
           <div className="txs-controls" style={{ marginBottom: 24 }}>
             <div className="tx-mini-card">
               <span className="tx-meta">CASH BALANCE</span>
@@ -382,7 +378,6 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* LOANS */}
           <div className="txs-controls" style={{ marginBottom: 24 }}>
             <div className="tx-mini-card">
               <span className="tx-meta">LOANS GIVEN</span>
@@ -398,7 +393,6 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* RECENT */}
           <section className="tx-recent">
             <h3 className="tx-meta" style={{ marginBottom: 12 }}>
               RECENT ACTIVITY

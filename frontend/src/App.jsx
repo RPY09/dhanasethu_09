@@ -78,6 +78,72 @@ function App() {
     });
   }, []);
 
+  useEffect(() => {
+    const sync = async () => {
+      const queue =
+        JSON.parse(localStorage.getItem("unsynced_transactions")) || [];
+
+      if (!queue.length) return;
+
+      for (const item of queue) {
+        try {
+          await addTransaction(item.payload);
+
+          const updatedQueue =
+            JSON.parse(localStorage.getItem("unsynced_transactions")) || [];
+
+          localStorage.setItem(
+            "unsynced_transactions",
+            JSON.stringify(updatedQueue.filter((t) => t.id !== item.id))
+          );
+        } catch {
+          break;
+        }
+      }
+    };
+
+    sync();
+
+    window.addEventListener("online", sync);
+
+    return () => window.removeEventListener("online", sync);
+  }, []);
+
+  useEffect(() => {
+    const syncLoans = async () => {
+      const queue = JSON.parse(localStorage.getItem("unsynced_loans")) || [];
+
+      if (!queue.length) return;
+
+      for (const item of queue) {
+        try {
+          await addLoan(item.payload);
+
+          const updatedQueue =
+            JSON.parse(localStorage.getItem("unsynced_loans")) || [];
+
+          localStorage.setItem(
+            "unsynced_loans",
+            JSON.stringify(updatedQueue.filter((l) => l.id !== item.id))
+          );
+
+          window.dispatchEvent(new Event("loans:changed"));
+          window.dispatchEvent(new Event("transactions:changed"));
+        } catch {
+          break; // stop retry if backend still failing
+        }
+      }
+    };
+
+    // Run on load
+    syncLoans();
+
+    // Run when online
+    window.addEventListener("online", syncLoans);
+
+    return () => window.removeEventListener("online", syncLoans);
+  }, []);
+
   return (
     <>
       <ScrollToTop />

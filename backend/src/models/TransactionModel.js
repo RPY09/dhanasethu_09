@@ -9,7 +9,8 @@ const transactionSchema = new mongoose.Schema(
     note: { type: String },
     type: {
       type: String,
-      enum: ["income", "expense", "invest"],
+      enum: ["income", "expense", "invest", "transfer"],
+
       required: true,
     },
     paymentMode: { type: String, required: true },

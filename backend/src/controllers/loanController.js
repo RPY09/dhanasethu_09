@@ -88,21 +88,34 @@ exports.settleLoan = async (req, res) => {
       user: req.user._id,
     });
 
-    if (!loan) return res.status(404).json({ message: "Loan not found" });
-    if (loan.settled)
+    if (!loan) {
+      return res.status(404).json({ message: "Loan not found" });
+    }
+
+    if (loan.settled) {
       return res.status(400).json({ message: "Loan already settled" });
+    }
 
     const paid = Number(paidAmount);
-    if (!paid || paid <= 0)
+    if (!Number.isFinite(paid) || paid <= 0) {
       return res.status(400).json({ message: "Invalid paid amount" });
+    }
 
+    // SAFETY NORMALIZATION (fix old data)
+    loan.principal = Number(loan.principal || 0);
+    loan.interestAmount = Number(loan.interestAmount || 0);
+    loan.interestPaid = Number(loan.interestPaid || 0);
+
+    const remainingInterest = Math.max(
+      loan.interestAmount - loan.interestPaid,
+      0
+    );
+    const remainingPrincipal = Math.max(loan.principal, 0);
+
+    /* ================= INTEREST ================= */
     if (paymentType === "interest") {
-      const totalInterest = Number(loan.interestAmount || 0);
-      const alreadyPaid = Number(loan.interestPaid || 0);
-
-      const remainingInterest = totalInterest - alreadyPaid;
       if (remainingInterest <= 0) {
-        return res.status(400).json({ message: "Interest already fully paid" });
+        return res.status(400).json({ message: "No interest remaining" });
       }
 
       const interestToPay = Math.min(paid, remainingInterest);
@@ -112,108 +125,100 @@ exports.settleLoan = async (req, res) => {
         loanId: loan._id,
         type: loan.role === "lent" ? "income" : "expense",
         amount: interestToPay,
-        category: loan.role === "lent" ? `loan interest` : `borrowed interest`,
-        paymentMode: loan.role === "lent" ? `loan` : `borrow`,
+        category: loan.role === "lent" ? "loan interest" : "borrowed interest",
+        paymentMode: loan.role === "lent" ? "loan" : "borrow",
         isPrincipal: false,
-        note:
-          loan.role === "lent"
-            ? `Interest received from ${loan.person}`
-            : `Interest paid to ${loan.person}`,
       });
 
-      loan.interestPaid = alreadyPaid + interestToPay;
-      loan.interestLastPaidOn = new Date();
+      loan.interestPaid += interestToPay;
+
+      if (loan.principal === 0 && loan.interestPaid >= loan.interestAmount) {
+        loan.settled = true;
+      }
+
       await loan.save();
-      await checkAndCloseLoan(loan);
-      return res.json({
-        message: "Interest recorded successfully",
-        remainingInterest: totalInterest - loan.interestPaid,
-      });
+      return res.json({ message: "Interest payment recorded" });
     }
 
-    // PRINCIPAL ONLY
+    /* ================= PRINCIPAL ================= */
     if (paymentType === "principal") {
-      if (paid > loan.principal)
+      if (paid > remainingPrincipal) {
         return res
           .status(400)
           .json({ message: "Paid amount exceeds principal" });
+      }
 
       await Transaction.create({
         user: req.user._id,
         loanId: loan._id,
-        type: loan.role === "lent" ? "income" : "expense",
+        type: "transfer",
         amount: paid,
         category:
-          loan.role === "lent" ? `loan principal` : `borrowed principal`,
-        paymentMode: loan.role === "lent" ? `loan` : `borrow`,
+          loan.role === "lent" ? "loan principal" : "borrowed principal",
+        paymentMode: loan.role === "lent" ? "loan" : "borrow",
         isPrincipal: true,
-        note:
-          loan.role === "lent"
-            ? `Principal received from ${loan.person}`
-            : `Principal paid to ${loan.person}`,
       });
 
       loan.principal -= paid;
+
+      if (loan.principal === 0 && remainingInterest === 0) {
+        loan.settled = true;
+      }
+
       await loan.save();
-      await checkAndCloseLoan(loan);
-      return res.json({ message: "Principal updated successfully" });
+      return res.json({ message: "Principal payment recorded" });
     }
 
-    // FULL REPAYMENT
+    /* ================= FULL ================= */
     if (paymentType === "full") {
-      const principalRemaining = loan.principal;
+      const totalRemaining = remainingPrincipal + remainingInterest;
 
-      const interestPaid = paid - principalRemaining;
-      if (interestPaid < 0)
-        return res
-          .status(400)
-          .json({ message: "Paid amount less than principal" });
+      if (paid < totalRemaining) {
+        return res.status(400).json({
+          message: "Paid amount is less than total outstanding",
+        });
+      }
 
-      // Principal transaction
-      await Transaction.create({
-        user: req.user._id,
-        loanId: loan._id,
-        type: loan.role === "lent" ? "income" : "expense",
-        amount: principalRemaining,
-        category:
-          loan.role === "lent" ? `loan principal` : `borrowed principal`,
-        paymentMode: loan.role === "lent" ? `loan` : `borrow`,
-        isPrincipal: true,
-        note:
-          loan.role === "lent"
-            ? `Principal received from ${loan.person}`
-            : `Principal paid to ${loan.person}`,
-      });
+      if (remainingPrincipal > 0) {
+        await Transaction.create({
+          user: req.user._id,
+          loanId: loan._id,
+          type: "transfer",
+          amount: remainingPrincipal,
+          category:
+            loan.role === "lent" ? "loan principal" : "borrowed principal",
+          paymentMode: loan.role === "lent" ? "loan" : "borrow",
+          isPrincipal: true,
+        });
+      }
 
-      // Interest transaction (if any)
-      if (interestPaid > 0) {
+      if (remainingInterest > 0) {
         await Transaction.create({
           user: req.user._id,
           loanId: loan._id,
           type: loan.role === "lent" ? "income" : "expense",
-          amount: interestPaid,
+          amount: remainingInterest,
           category:
-            loan.role === "lent" ? `loan interest` : `borrowed interest`,
-          paymentMode: loan.role === "lent" ? `loan` : `borrow`,
+            loan.role === "lent" ? "loan interest" : "borrowed interest",
+          paymentMode: loan.role === "lent" ? "loan" : "borrow",
           isPrincipal: false,
-          note:
-            loan.role === "lent"
-              ? `Interest received from ${loan.person}`
-              : `Interest paid to ${loan.person}`,
         });
       }
 
       loan.principal = 0;
+      loan.interestPaid = loan.interestAmount;
       loan.settled = true;
+
       await loan.save();
-      await checkAndCloseLoan(loan);
       return res.json({ message: "Loan fully settled" });
     }
 
     return res.status(400).json({ message: "Invalid payment type" });
   } catch (err) {
     console.error("SETTLE LOAN ERROR:", err);
-    res.status(500).json({ message: err.message });
+    return res.status(500).json({
+      message: err.message || "Internal Server Error",
+    });
   }
 };
 
