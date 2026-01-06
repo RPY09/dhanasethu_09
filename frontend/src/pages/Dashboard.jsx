@@ -4,6 +4,7 @@ import { getTransactions } from "../api/transaction.api";
 import { getLoanSummary } from "../api/loan.api";
 import { useCurrency } from "../context/CurrencyContext";
 import CountryCurrencyDropdown from "../components/CountryCurrencyDropdown";
+import { animate } from "framer-motion";
 import "./Dashboard.css";
 
 /* ------------------ Utils ------------------ */
@@ -30,6 +31,36 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [isColdStart, setIsColdStart] = useState(false);
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
+
+  /* ------------------ Count Animation Hook ------------------ */
+  const useAnimatedNumber = (value, duration = 0.8) => {
+    const [display, setDisplay] = useState(value);
+
+    useEffect(() => {
+      const controls = animate(display, value, {
+        duration,
+        ease: "easeOut",
+        onUpdate: (v) => setDisplay(v),
+      });
+
+      return () => controls.stop();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [value]);
+
+    return display;
+  };
+
+  useEffect(() => {
+    if (showCurrencyDropdown) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [showCurrencyDropdown]);
 
   /* ------------------ Fetch Loans ------------------ */
   useEffect(() => {
@@ -155,6 +186,17 @@ const Dashboard = () => {
     );
   }, [dashboardSummary, loading]);
 
+  /* ------------------ Animated Numbers ------------------ */
+  const animatedBalance = useAnimatedNumber(convert(balance));
+  const animatedIncome = useAnimatedNumber(convert(monthlyIncome));
+  const animatedExpense = useAnimatedNumber(convert(monthlyExpense));
+  const animatedInvest = useAnimatedNumber(convert(monthlyInvest));
+
+  const animatedCash = useAnimatedNumber(convert(cashBalance));
+  const animatedBank = useAnimatedNumber(convert(bankBalance));
+  const animatedLent = useAnimatedNumber(convert(loanSummary.lent));
+  const animatedBorrowed = useAnimatedNumber(convert(loanSummary.borrowed));
+
   /* ------------------ Skeleton ------------------ */
   const DashboardSkeleton = () => (
     <>
@@ -261,7 +303,7 @@ const Dashboard = () => {
             </div>
 
             <div className="tx-balance-amount">
-              {symbol} {formatCurrency(convert(balance))}
+              {symbol} {formatCurrency(animatedBalance)}
             </div>
 
             <div className="tx-monthly-grid">
@@ -273,7 +315,14 @@ const Dashboard = () => {
                 <div key={label} className="tx-month-stat">
                   <span>{label}</span>
                   <strong className={cls}>
-                    {symbol} {formatCurrency(convert(val))}
+                    {symbol}{" "}
+                    {formatCurrency(
+                      label === "Monthly Income"
+                        ? animatedIncome
+                        : label === "Expenses"
+                          ? animatedExpense
+                          : animatedInvest
+                    )}
                   </strong>
                 </div>
               ))}
@@ -285,13 +334,13 @@ const Dashboard = () => {
             <div className="tx-mini-card">
               <span className="tx-meta">CASH BALANCE</span>
               <span className="tx-category">
-                {symbol} {formatCurrency(convert(cashBalance))}
+                {symbol} {formatCurrency(animatedCash)}
               </span>
             </div>
             <div className="tx-mini-card">
               <span className="tx-meta">BANK BALANCE</span>
               <span className="tx-category">
-                {symbol} {formatCurrency(convert(bankBalance))}
+                {symbol} {formatCurrency(animatedBank)}
               </span>
             </div>
           </div>
@@ -301,13 +350,13 @@ const Dashboard = () => {
             <div className="tx-mini-card">
               <span className="tx-meta">LOANS GIVEN</span>
               <span className="tx-category">
-                {symbol} {formatCurrency(convert(loanSummary.lent))}
+                {symbol} {formatCurrency(animatedLent)}
               </span>
             </div>
             <div className="tx-mini-card">
               <span className="tx-meta">BORROWED</span>
               <span className="tx-category">
-                {symbol} {formatCurrency(convert(loanSummary.borrowed))}
+                {symbol} {formatCurrency(animatedBorrowed)}
               </span>
             </div>
           </div>

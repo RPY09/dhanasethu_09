@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "./components/layout/Navbar";
 import AppRoutes from "./routes/AppRoutes";
@@ -10,7 +10,24 @@ import LockGate from "./components/LockGate";
 function App() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [isBackgrounded, setIsBackgrounded] = useState(false);
+
   const INACTIVITY_LIMIT = 60 * 1000;
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        setIsBackgrounded(true);
+      } else {
+        setIsBackgrounded(false);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, []);
 
   /* Lock app when backgrounded */
   useEffect(() => {
@@ -68,6 +85,15 @@ function App() {
       <LockGate>
         <AppRoutes />
       </LockGate>
+      {isBackgrounded && (
+        <div className="privacy-blur-overlay">
+          <div className="privacy-blur-content">
+            <span>
+              <i class="bi bi-shield-lock"></i> Securing your data
+            </span>
+          </div>
+        </div>
+      )}
     </>
   );
 }

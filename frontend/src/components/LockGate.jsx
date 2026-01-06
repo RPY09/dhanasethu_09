@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { isAppLockEnabled, isAppUnlocked } from "../utils/appLock";
+import { isBiometricEnabled } from "../utils/biometric";
 
 const LockGate = ({ children }) => {
   const location = useLocation();
@@ -10,7 +11,7 @@ const LockGate = ({ children }) => {
 
   // App lock enabled & still locked → ONLY AppLock allowed
   if (
-    isAppLockEnabled() &&
+    (isAppLockEnabled() || isBiometricEnabled()) &&
     !isAppUnlocked() &&
     location.pathname !== "/app-lock"
   ) {

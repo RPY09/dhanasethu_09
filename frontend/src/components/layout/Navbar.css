@@ -59,23 +59,6 @@
   justify-content: center;
 }
 
-/* Bottom Floating Navigation */
-/* .zira-bottom-nav {
-  position: fixed;
-  bottom: 100px;
-  left: 20px;
-  right: 20px;
-  height: 70px;
-  background: var(--bg-deep);
-  border-radius: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  padding: 0 10px;
-  box-shadow: 0 15px 35px rgba(16, 35, 42, 0.3);
-  z-index: 2000;
-} */
-
 .zira-nav-item {
   display: flex;
   flex-direction: column;
@@ -135,14 +118,14 @@
   }
 }
 
-/* Updated Bottom Floating Navigation */
+/*  Bottom Floating Navigation */
 .zira-bottom-nav {
   position: fixed;
-  bottom: 20px; /* Anchors it 20px from the absolute bottom */
+  bottom: 20px;
   left: 20px;
   right: 20px;
   height: 70px;
-  margin-bottom: 45px;
+  /* margin-bottom: 30px; */
   background: var(--bg-deep);
   border-radius: 24px;
   display: flex;
@@ -154,6 +137,42 @@
 
   transform: translateZ(0);
   backface-visibility: hidden;
+  -webkit-animation: swing-in-bottom-fwd 1.5s
+    cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+  animation: swing-in-bottom-fwd 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)
+    both;
+}
+@-webkit-keyframes swing-in-bottom-fwd {
+  0% {
+    -webkit-transform: rotateX(100deg);
+    transform: rotateX(100deg);
+    -webkit-transform-origin: bottom;
+    transform-origin: bottom;
+    opacity: 0;
+  }
+  100% {
+    -webkit-transform: rotateX(0);
+    transform: rotateX(0);
+    -webkit-transform-origin: bottom;
+    transform-origin: bottom;
+    opacity: 1;
+  }
+}
+@keyframes swing-in-bottom-fwd {
+  0% {
+    -webkit-transform: rotateX(100deg);
+    transform: rotateX(100deg);
+    -webkit-transform-origin: bottom;
+    transform-origin: bottom;
+    opacity: 0;
+  }
+  100% {
+    -webkit-transform: rotateX(0);
+    transform: rotateX(0);
+    -webkit-transform-origin: bottom;
+    transform-origin: bottom;
+    opacity: 1;
+  }
 }
 
 body {
@@ -231,6 +250,33 @@ body {
   letter-spacing: -1px;
   display: flex;
   align-items: center;
+  -webkit-animation: tracking-in-expand 1s cubic-bezier(0.215, 0.61, 0.355, 1)
+    both;
+  animation: tracking-in-expand 1s cubic-bezier(0.215, 0.61, 0.355, 1) both;
+}
+@-webkit-keyframes tracking-in-expand {
+  0% {
+    letter-spacing: -0.5em;
+    opacity: 0;
+  }
+  40% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes tracking-in-expand {
+  0% {
+    letter-spacing: -0.5em;
+    opacity: 0;
+  }
+  40% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 #spans {
   color: var(--accent-tan);
