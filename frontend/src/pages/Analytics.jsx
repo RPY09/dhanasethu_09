@@ -54,7 +54,11 @@ const isInvestment = (t) => {
   const type = (t.type || "").toLowerCase();
   return type === "investment" || type === "invest";
 };
-
+const getThemeColor = (variable) => {
+  return getComputedStyle(document.documentElement)
+    .getPropertyValue(variable)
+    .trim();
+};
 const Analytics = () => {
   const [transactions, setTransactions] = useState([]);
   const [range, setRange] = useState("month");
@@ -65,7 +69,40 @@ const Analytics = () => {
   const [investPaymentFilter, setInvestPaymentFilter] = useState("all");
   const { symbol, convert } = useCurrency();
   const [loading, setLoading] = useState(true);
+  const [currentTheme, setCurrentTheme] = useState(
+    document.documentElement.getAttribute("data-theme") || "light"
+  );
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setCurrentTheme(
+        document.documentElement.getAttribute("data-theme") || "light"
+      );
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+    return () => observer.disconnect();
+  }, []);
 
+  // Use dynamic theme colors that pull from CSS variables
+  const themeColors = useMemo(
+    () => [
+      getThemeColor("--primary") || "#10232A",
+      getThemeColor("--accent") || "#B58863",
+      getThemeColor("--text-muted") || "#A79E9C",
+      "#3D4D55",
+      "#D3C3B9",
+    ],
+    [currentTheme]
+  );
+  const barColors = useMemo(
+    () => ({
+      income: getThemeColor("--accent") || "#B58863",
+      expense: getThemeColor("--text-main") || "#10232A",
+    }),
+    [currentTheme]
+  );
   const { showAlert } = useAlert();
 
   const [loanViewMode, setLoanViewMode] = useState("principal"); // "principal" | "interest"
@@ -613,28 +650,28 @@ const Analytics = () => {
                 <Legend verticalAlign="top" align="right" height={36} />
                 <Bar
                   dataKey="Income"
-                  fill="#B58863"
+                  fill={barColors.income}
                   radius={[4, 4, 0, 0]}
                   barSize={30}
                   label={{
                     position: "top",
                     fontSize: "10px",
                     fontWeight: "700",
-                    fill: "#B58863",
+                    fill: barColors.income,
                     fontFamily: "Inter",
                     offset: 5,
                   }}
                 />
                 <Bar
                   dataKey="Expense"
-                  fill="#10232A"
+                  fill={barColors.expense}
                   radius={[4, 4, 0, 0]}
                   barSize={30}
                   label={{
                     position: "top",
                     fontSize: "10px",
                     fontWeight: "700",
-                    fill: "#10232A",
+                    fill: barColors.expense,
                     fontFamily: "Inter",
                     offset: 5,
                   }}
@@ -678,7 +715,7 @@ const Analytics = () => {
                       label={{
                         fontSize: "10px",
                         fontWeight: "700",
-                        fill: "#10232A",
+                        fill: "var(--text-main)",
                         fontFamily: "Inter",
                       }}
                       labelLine={{ stroke: "#A79E9C", strokeWidth: 1 }}
@@ -718,7 +755,7 @@ const Analytics = () => {
                       label={{
                         fontSize: "10px",
                         fontWeight: "700",
-                        fill: "#10232A",
+                        fill: "var(--text-main)",
                         fontFamily: "Inter",
                       }}
                       labelLine={{ stroke: "#A79E9C", strokeWidth: 1 }}
@@ -761,7 +798,7 @@ const Analytics = () => {
                       label={{
                         fontSize: "10px",
                         fontWeight: "700",
-                        fill: "#10232A", // Deep Teal from your palette
+                        fill: "var(--text-main)",
                         fontFamily: "Inter",
                       }}
                       labelLine={{ stroke: "#A79E9C", strokeWidth: 1 }}
@@ -804,7 +841,7 @@ const Analytics = () => {
                       label={{
                         fontSize: "10px",
                         fontWeight: "700",
-                        fill: "#10232A",
+                        fill: "var(--text-main)",
                         fontFamily: "Inter",
                       }}
                       labelLine={{ stroke: "#A79E9C", strokeWidth: 1 }}

@@ -1,14 +1,3 @@
-:root {
-  --primary: #10232a; /* Deep Teal */
-  --accent: #b58863; /* Tan */
-  --bg-soft: #f4f1ee; /* Beige Background */
-  --card-bg: #ffffff;
-  --text-main: #10232a;
-  --text-muted: #a79e9c;
-  --radius-lg: 24px;
-  --radius-md: 16px;
-}
-
 /* Page Lock - No Horizontal Scroll */
 .auth-page {
   background-color: var(--bg-soft);
@@ -140,7 +129,8 @@
 .input-field input:focus {
   outline: none;
   border-color: var(--accent);
-  background: white;
+  background: var(--card-bg);
+
   box-shadow: 0 4px 12px rgba(181, 136, 99, 0.08);
 }
 
@@ -195,7 +185,8 @@
 }
 
 .pwd-btn {
-  background: white;
+  background: var(--card-bg);
+
   border: 1.5px solid var(--accent);
   color: var(--accent);
   padding: 12px;

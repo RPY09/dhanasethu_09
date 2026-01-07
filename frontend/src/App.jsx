@@ -6,6 +6,7 @@ import ScrollToTop from "./components/ScrollToTop";
 import api from "./api/axios";
 import { lockApp, isAppUnlocked, isAppLockEnabled } from "./utils/appLock";
 import LockGate from "./components/LockGate";
+import { ThemeProvider } from "./context/ThemeContext";
 
 function App() {
   const navigate = useNavigate();

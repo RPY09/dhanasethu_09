@@ -11,58 +11,65 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* Global Light Mode */
+  --primary: #10232a;
+  --balance: #10232a;
+  --accent: #b58863;
+  --bg-soft: #f4f1ee;
+  --bg-deep: #10232a;
+  --card-bg: #ffffff;
+  --text-main: #10232a;
+  --text-muted: #a79e9c;
+  --radius-lg: 24px;
+  --radius-md: 12px;
+  --nav-bg: rgba(244, 241, 238, 0.8);
+  --skeleton-base: #e6e6e6;
+  --skeleton-shine: #f2f2f2;
+  --income: #22c55e;
+  --expense: #ef4444;
+  --invest: #b58863;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+[data-theme="dark"] {
+  /* Brand-aligned Dark Theme */
+  --bg-soft: #0b1418; /* app background */
+  --card-bg: #121f26; /* cards */
+  --bg-deep: #1b2c34; /* deeper layers */
+  --balance: #28383e;
+  --primary: #b58863; /* TAN as primary in dark */
+  --accent: #d2a679; /* softer tan accent */
+
+  --text-main: #e6edf3; /* main text */
+  --text-muted: #9fb0bb; /* muted text */
+
+  --nav-bg: rgba(11, 20, 24, 0.85);
+
+  --skeleton-base: rgba(255, 255, 255, 0.06);
+  --skeleton-shine: rgba(255, 255, 255, 0.12);
 }
 
+html,
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  font-family:
+    "Inter",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  background-color: var(--bg-soft); /* Link to variable */
+  transition: background-color 0.3s ease; /* Smooth transition */
 }
-
+body {
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
+}
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
 }

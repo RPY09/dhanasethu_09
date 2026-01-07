@@ -1,15 +1,6 @@
 :root {
-  --primary: #10232a;
-  --secondary: #3d4d55;
-  --accent: #b58863;
-  --bg-soft: #f4f1ee;
-  --card-bg: #ffffff;
-  --text-main: #10232a;
-  --text-muted: #7a868a;
   --income: #2d8a5a;
   --expense: #d9534f;
-  --radius-lg: 24px;
-  --radius-md: 12px;
 }
 
 .tx-wrapper {
@@ -32,7 +23,8 @@
   font-size: 28px;
   font-weight: 800;
   margin: 0;
-  letter-spacing: -0.5px;
+  letter-spacing: 1px;
+  font-family: "Playfair Display", serif;
 }
 
 .tx-titles p {
@@ -48,7 +40,7 @@
   height: 48px;
   border-radius: 50%;
   background: var(--primary);
-  color: white;
+  color: var(--bg-soft);
   border: none;
   font-size: 24px;
   box-shadow: 0 8px 16px rgba(16, 35, 42, 0.2);
@@ -203,7 +195,12 @@
 }
 /* ===== Skeleton Loader ===== */
 .skeleton {
-  background: linear-gradient(90deg, #e6e6e6 25%, #f2f2f2 37%, #e6e6e6 63%);
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-base) 25%,
+    var(--skeleton-shine) 37%,
+    var(--skeleton-base) 63%
+  );
   background-size: 400% 100%;
   animation: shimmer 1.4s ease infinite;
   border-radius: 8px;

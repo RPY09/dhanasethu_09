@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAlert } from "../components/Alert/AlertContext";
 import { updateProfile, resetPasswordWithSecurity } from "../api/auth.api";
+import { useTheme } from "../context/ThemeContext";
+
 import {
   isAppLockEnabled,
   enableAppLock,
@@ -21,6 +23,7 @@ import "./Profile.css";
 const Profile = () => {
   const navigate = useNavigate();
   const { showAlert } = useAlert();
+  const { theme, toggleTheme } = useTheme();
 
   const [user, setUser] = useState(
     JSON.parse(localStorage.getItem("user") || "{}")
@@ -246,8 +249,8 @@ const Profile = () => {
               onClick={handleProfileUpdate}
               disabled={loading}
             >
-              <i className="bi bi-check-lg"></i>
-              <span>{loading ? "Saving..." : "Save"}</span>
+              <i className="bi bi-cloud-arrow-up"></i>
+              <span>{loading ? "Saving..." : "Save Changes"}</span>
             </button>
           )}
 
@@ -259,33 +262,42 @@ const Profile = () => {
             <i className="bi bi-box-arrow-right"></i>
             <span>Logout</span>
           </button>
-        </div>
-
-        {isBiometricSupported() && (
-          <button
-            type="button"
-            className="action-tile"
-            onClick={async () => {
-              if (!isAppLockEnabled()) {
-                setPendingBiometric(true);
-                setShowEnableLock(true);
-                return;
-              }
-              if (isBiometricEnabled()) {
-                disableBiometric();
-                showAlert("Biometric disabled", "info");
-              } else {
-                await registerBiometric();
-                showAlert("Biometric enabled", "success");
-              }
-            }}
-          >
-            <i className="bi bi-fingerprint"></i>
-            <span>
-              {isBiometricEnabled() ? "Disable Biometric" : "Enable Biometric"}
-            </span>
+          {isBiometricSupported() && (
+            <button
+              type="button"
+              className="action-tile"
+              onClick={async () => {
+                if (!isAppLockEnabled()) {
+                  setPendingBiometric(true);
+                  setShowEnableLock(true);
+                  return;
+                }
+                if (isBiometricEnabled()) {
+                  disableBiometric();
+                  showAlert("Biometric disabled", "info");
+                } else {
+                  await registerBiometric();
+                  showAlert("Biometric enabled", "success");
+                }
+              }}
+            >
+              <i className="bi bi-fingerprint"></i>
+              <span>
+                {isBiometricEnabled()
+                  ? "Disable Biometric"
+                  : "Enable Biometric"}
+              </span>
+            </button>
+          )}
+          <button className="action-tile" onClick={toggleTheme}>
+            {theme === "light" ? (
+              <i class="bi bi-moon-stars"></i>
+            ) : (
+              <i class="bi bi-brightness-high-fill"></i>
+            )}
+            <span>{theme === "light" ? "Dark Mode" : "Light Mode"}</span>
           </button>
-        )}
+        </div>
 
         {isAppLockEnabled() && (
           <button

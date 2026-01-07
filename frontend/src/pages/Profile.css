@@ -9,7 +9,7 @@
 }
 
 .profile-compact-card {
-  background: white;
+  background: var(--card-bg);
   width: 100%;
   max-width: 380px;
   padding: 20px;
@@ -27,7 +27,9 @@
 .profile-header-slim h2 {
   font-size: 22px;
   font-weight: 800;
-  color: var(--bg-deep);
+  color: var(--text-main);
+  font-family: "Playfair Display", serif;
+  letter-spacing: 1px;
   margin: 0;
 }
 
@@ -61,9 +63,9 @@
 .compact-input-group input {
   padding: 10px 14px;
   border-radius: 10px;
-  border: 1.5px solid #eee;
+  border: 1.5px solid var(--text-muted);
   font-size: 14px;
-  background: #fafafa;
+  background: var(--bg-soft);
 }
 
 /* Action Grid: 2 columns to reduce height */
@@ -81,7 +83,7 @@
   justify-content: center;
   gap: 6px;
   padding: 12px;
-  background: #f8f8f8;
+  background: var(--bg-soft);
   border: none;
   border-radius: 16px;
   cursor: pointer;
@@ -90,13 +92,13 @@
 
 .action-tile i {
   font-size: 18px;
-  color: var(--bg-deep);
+  color: var(--text-main);
 }
 
 .action-tile span {
   font-size: 11px;
   font-weight: 700;
-  color: var(--bg-deep);
+  color: var(--text-muted);
 }
 
 .action-tile.active-tile {
@@ -145,7 +147,7 @@
   z-index: 10000;
 }
 .modal-content {
-  background: white;
+  background: var(--card-bg);
   width: 100%;
   max-width: 320px;
   padding: 20px;

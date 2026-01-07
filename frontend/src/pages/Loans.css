@@ -5,7 +5,8 @@
 }
 
 .loan-card {
-  background: #fff;
+  background: var(--card-bg);
+
   border-radius: var(--radius-lg);
   padding: 24px;
   max-width: 450px;
@@ -14,10 +15,11 @@
 }
 
 .loan-header h2 {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 800;
-  color: var(--primary);
-  letter-spacing: -0.5px;
+  color: var(--text-main);
+  letter-spacing: 1px;
+  font-family: "Playfair Display", serif;
 }
 
 .loan-header p {
@@ -46,8 +48,8 @@
 .input-group input,
 .input-group select,
 .input-group textarea {
-  background: #fafafa;
-  border: 1.5px solid #ececec;
+  background: var(--card-bg);
+  border: 1.5px solid var(--text-muted);
   padding: 12px;
   border-radius: var(--radius-md);
   font-size: 14px;
@@ -103,7 +105,7 @@
 
 .loan-submit {
   background-color: var(--primary);
-  color: white;
+  /* color: var(--card-bg); */
   padding: 16px;
   border-radius: var(--radius-md);
   font-weight: 800;
@@ -116,7 +118,7 @@
   width: 20px;
   height: 20px;
   border: 3px solid rgba(255, 255, 255, 0.3);
-  border-top: 3px solid white;
+  border-top: 3px solid var(--card-bg);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   display: inline-block;
@@ -168,8 +170,9 @@ input.dates {
   top: 50%;
   transform: translateY(-50%);
   display: flex;
-  background: #fafafa;
-  border: 1.5px solid #ececec;
+  background: var(--card-bg);
+
+  border: 1.5px solid var(--card-bg);
   border-radius: 8px;
   width: 50px;
   height: 20px;
@@ -211,7 +214,7 @@ input.dates {
 }
 
 .toggle-btn.active {
-  color: #ffffff;
+  color: var(--card-bg);
 }
 
 input.dates {
