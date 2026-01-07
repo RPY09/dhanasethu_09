@@ -31,7 +31,7 @@ const Profile = () => {
   const [showPinModal, setShowPinModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [loading, setLoading] = useState(false);
-
+  const [pendingBiometric, setPendingBiometric] = useState(false);
   const [formData, setFormData] = useState({
     name: user.name || "",
     number: user.number || "",
@@ -53,34 +53,69 @@ const Profile = () => {
   };
 
   /* ---------------- PROFILE UPDATE ---------------- */
-  const handleProfileUpdate = async (e) => {
-    e.preventDefault();
-
-    if (!isEditing) return;
+  const handleProfileUpdate = async () => {
+    if (!isEditing) {
+      // nothing to save
+      showAlert("Enable edit first", "info");
+      return;
+    }
 
     try {
+      setLoading(true);
+      // updateProfile may return response.data or data directly — handle both.
       const res = await updateProfile(formData);
-      const updatedUser = res.data.user;
+      // Support multiple shapes: { data: { user } }, { user }, or direct user
+      const updatedUser =
+        (res && res.data && res.data.user) ||
+        (res && res.user) ||
+        (res && res.user === undefined && res) ||
+        null;
 
+      if (!updatedUser || typeof updatedUser !== "object") {
+        // If API returned unexpected shape, still try to merge known fields
+        // but consider this a failure to avoid false success alerts.
+        showAlert("Update failed: unexpected response", "error");
+        return;
+      }
+
+      // Persist updated user
       localStorage.setItem("user", JSON.stringify(updatedUser));
       setUser(updatedUser);
 
       setIsEditing(false);
       showAlert("Profile updated", "success");
-    } catch {
-      showAlert("Update failed", "error");
+    } catch (err) {
+      console.error("Profile update failed", err);
+      showAlert(
+        err?.response?.data?.message || err?.message || "Update failed",
+        "error"
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   /* ---------------- APP LOCK ---------------- */
-  const handleEnableLock = () => {
+  const handleEnableLock = async () => {
     if (newPin.length !== 4) {
       showAlert("PIN must be 4 digits", "error");
       return;
     }
+
     enableAppLock(newPin);
     setShowEnableLock(false);
     showAlert("App Lock Enabled", "success");
+
+    if (pendingBiometric) {
+      try {
+        await registerBiometric();
+        showAlert("Biometric enabled", "success");
+      } catch {
+        showAlert("Biometric setup failed", "error");
+      } finally {
+        setPendingBiometric(false);
+      }
+    }
   };
 
   const handleChangePin = () => {
@@ -131,7 +166,11 @@ const Profile = () => {
           <p>Security & Identity</p>
         </header>
 
-        <form onSubmit={handleProfileUpdate} className="profile-form-compact">
+        <form
+          onSubmit={(e) => e.preventDefault()}
+          className="profile-form-compact"
+          aria-label="Profile form"
+        >
           <div className="compact-input-group">
             <label>Full Name</label>
             <input
@@ -153,106 +192,110 @@ const Profile = () => {
               }
             />
           </div>
+        </form>
 
-          <div className="profile-action-grid">
-            {!isAppLockEnabled() ? (
-              <button
-                type="button"
-                className="action-tile"
-                onClick={() => setShowEnableLock(true)}
-              >
-                <i className="bi bi-shield-lock"></i>
-                <span>Lock App</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="action-tile active-tile"
-                onClick={() => setShowPinModal(true)}
-              >
-                <i className="bi bi-key"></i>
-                <span>Change PIN</span>
-              </button>
-            )}
-
+        <div className="profile-action-grid">
+          {!isAppLockEnabled() ? (
             <button
               type="button"
               className="action-tile"
-              onClick={() => setShowPasswordModal(true)}
+              onClick={() => setShowEnableLock(true)}
             >
-              <i className="bi bi-shield-check"></i>
-              <span>Password</span>
+              <i className="bi bi-shield-lock"></i>
+              <span>Lock App</span>
             </button>
-
-            {!isEditing ? (
-              <button
-                type="button"
-                className="action-tile"
-                onClick={() => {
-                  setFormData({
-                    name: user.name || "",
-                    number: user.number || "",
-                  });
-                  setIsEditing(true);
-                }}
-              >
-                <i className="bi bi-pencil"></i>
-                <span>Edit Info</span>
-              </button>
-            ) : (
-              <button type="submit" className="action-tile save-tile">
-                <i className="bi bi-check-lg"></i>
-                <span>Save</span>
-              </button>
-            )}
-
+          ) : (
             <button
               type="button"
-              className="action-tile logout-tile"
-              onClick={handleLogout}
+              className="action-tile active-tile"
+              onClick={() => setShowPinModal(true)}
             >
-              <i className="bi bi-box-arrow-right"></i>
-              <span>Logout</span>
+              <i className="bi bi-key"></i>
+              <span>Change PIN</span>
             </button>
-          </div>
-          {isBiometricSupported() && (
-            <button
-              className="action-tile"
-              disabled={!isAppLockEnabled()}
-              onClick={async () => {
-                if (!isAppLockEnabled()) {
-                  showAlert("Enable App Lock first", "error");
-                  return;
-                }
+          )}
 
-                if (isBiometricEnabled()) {
-                  disableBiometric();
-                  showAlert("Biometric disabled", "info");
-                } else {
-                  await registerBiometric();
-                  showAlert("Biometric enabled", "success");
-                }
+          <button
+            type="button"
+            className="action-tile"
+            onClick={() => setShowPasswordModal(true)}
+          >
+            <i className="bi bi-shield-check"></i>
+            <span>Password</span>
+          </button>
+
+          {!isEditing ? (
+            <button
+              type="button"
+              className="action-tile"
+              onClick={() => {
+                setFormData({
+                  name: user.name || "",
+                  number: user.number || "",
+                });
+                setIsEditing(true);
               }}
             >
-              <i className="bi bi-fingerprint"></i>
-              <span>
-                {isBiometricEnabled()
-                  ? "Disable Biometric"
-                  : "Enable Biometric"}
-              </span>
+              <i className="bi bi-pencil"></i>
+              <span>Edit Info</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="action-tile save-tile"
+              onClick={handleProfileUpdate}
+              disabled={loading}
+            >
+              <i className="bi bi-check-lg"></i>
+              <span>{loading ? "Saving..." : "Save"}</span>
             </button>
           )}
 
-          {isAppLockEnabled() && (
-            <button
-              type="button"
-              className="disable-lock-link"
-              onClick={handleDisableLock}
-            >
-              Disable App Lock
-            </button>
-          )}
-        </form>
+          <button
+            type="button"
+            className="action-tile logout-tile"
+            onClick={handleLogout}
+          >
+            <i className="bi bi-box-arrow-right"></i>
+            <span>Logout</span>
+          </button>
+        </div>
+
+        {isBiometricSupported() && (
+          <button
+            type="button"
+            className="action-tile"
+            onClick={async () => {
+              if (!isAppLockEnabled()) {
+                setPendingBiometric(true);
+                setShowEnableLock(true);
+                return;
+              }
+              if (isBiometricEnabled()) {
+                disableBiometric();
+                showAlert("Biometric disabled", "info");
+              } else {
+                await registerBiometric();
+                showAlert("Biometric enabled", "success");
+              }
+            }}
+          >
+            <i className="bi bi-fingerprint"></i>
+            <span>
+              {isBiometricEnabled() ? "Disable Biometric" : "Enable Biometric"}
+            </span>
+          </button>
+        )}
+
+        {isAppLockEnabled() && (
+          <button
+            type="button"
+            className="disable-lock-link"
+            onClick={handleDisableLock}
+          >
+            Disable App Lock
+          </button>
+        )}
       </div>
 
       {/* ENABLE LOCK MODAL */}

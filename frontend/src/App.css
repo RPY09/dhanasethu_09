@@ -1,21 +1,40 @@
+/* App.css */
+:root {
+  /* Global Light Mode */
+  --primary: #10232a;
+  --accent: #b58863;
+  --bg-soft: #f4f1ee;
+  --card-bg: #ffffff;
+  --text-main: #10232a;
+  --text-muted: #a79e9c;
+  --radius-lg: 24px;
+  --radius-md: 12px;
+}
+
+[data-theme="dark"] {
+  /* Sophisticated Dark Palette */
+  --primary: #c69d7b; /* Muted Tan for better contrast */
+  --bg-soft: #0d171b; /* Deep Charcoal base */
+  --card-bg: #16252b; /* Elevated surface */
+  --text-main: #e2e8f0; /* Soft white */
+  --text-muted: #94a3b8;
+  --accent: #b58863;
+}
+
 html,
 body {
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%;
-  overflow-x: hidden;
-  position: fixed;
-  background-color: #f4f1ee;
+  background-color: var(--bg-soft); /* Link to variable */
+  transition: background-color 0.3s ease; /* Smooth transition */
 }
-
-#root {
-  height: 100%;
-  width: 100%;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+body {
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
 }
-
 * {
   box-sizing: border-box;
 }

@@ -26,7 +26,14 @@ const Dashboard = () => {
   const { convert, displayCountry, symbol } = useCurrency();
 
   const [transactions, setTransactions] = useState([]);
-  const [loanSummary, setLoanSummary] = useState({ lent: 0, borrowed: 0 });
+  const [loanSummary, setLoanSummary] = useState(() => {
+    try {
+      const cached = localStorage.getItem("loan_cache");
+      return cached ? JSON.parse(cached) : { lent: 0, borrowed: 0 };
+    } catch {
+      return { lent: 0, borrowed: 0 };
+    }
+  });
 
   const [loading, setLoading] = useState(true);
   const [isColdStart, setIsColdStart] = useState(false);
@@ -113,13 +120,27 @@ const Dashboard = () => {
     const fetchLoans = async () => {
       try {
         const data = await getLoanSummary();
-        setLoanSummary(data || { lent: 0, borrowed: 0 });
+
+        setLoanSummary((prev) => {
+          const prevLent = Number(prev?.lent || 0);
+          const prevBorrowed = Number(prev?.borrowed || 0);
+          const nextLent = Number(data?.lent || 0);
+          const nextBorrowed = Number(data?.borrowed || 0);
+
+          if (prevLent === nextLent && prevBorrowed === nextBorrowed) {
+            return prev;
+          }
+
+          return { lent: nextLent, borrowed: nextBorrowed };
+        });
+
         localStorage.setItem("loan_cache", JSON.stringify(data || {}));
       } catch {
         const cached = localStorage.getItem("loan_cache");
         if (cached) setLoanSummary(JSON.parse(cached));
       }
     };
+
     fetchLoans();
   }, []);
 

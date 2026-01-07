@@ -24,14 +24,19 @@ export const registerBiometric = async () => {
 
   const credential = await navigator.credentials.create({
     publicKey: {
-      challenge: crypto.getRandomValues(new Uint8Array(32)),
+      // use ArrayBuffer for challenge and user.id to be explicit
+      challenge: crypto.getRandomValues(new Uint8Array(32)).buffer,
       rp: { name: "DhanaSethu" },
       user: {
-        id: crypto.getRandomValues(new Uint8Array(16)),
+        id: crypto.getRandomValues(new Uint8Array(16)).buffer,
         name: "DhanaSethu User",
         displayName: "DhanaSethu User",
       },
-      pubKeyCredParams: [{ type: "public-key", alg: -7 }],
+      // include both ES256 (-7) and RS256 (-257) to avoid registration failures
+      pubKeyCredParams: [
+        { type: "public-key", alg: -7 }, // ES256
+        { type: "public-key", alg: -257 }, // RS256
+      ],
       authenticatorSelection: {
         authenticatorAttachment: "platform",
         userVerification: "required",
@@ -52,10 +57,11 @@ export const verifyBiometric = async () => {
 
     const assertion = await navigator.credentials.get({
       publicKey: {
-        challenge: crypto.getRandomValues(new Uint8Array(32)),
+        challenge: crypto.getRandomValues(new Uint8Array(32)).buffer,
         allowCredentials: [
           {
-            id: base64ToBuffer(rawIdBase64),
+            // convert stored base64 back to an ArrayBuffer-view
+            id: base64ToBuffer(rawIdBase64).buffer,
             type: "public-key",
           },
         ],
