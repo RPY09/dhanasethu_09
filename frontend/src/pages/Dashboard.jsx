@@ -173,12 +173,14 @@ const Dashboard = () => {
       const amt = parseNumber(t.amount);
       const type = (t.type || "").toLowerCase();
 
-      // Monthly stats
+      // Monthly stats — skip principal transactions (isPrincipal === true)
       if (d.getMonth() === month && d.getFullYear() === year) {
-        if (type === "income") monthlyIncome += amt;
-        else if (type === "expense") monthlyExpense += amt;
-        else if (type === "investment" || type === "invest")
-          monthlyInvest += amt;
+        if (!t.isPrincipal) {
+          if (type === "income") monthlyIncome += amt;
+          else if (type === "expense") monthlyExpense += amt;
+          else if (type === "investment" || type === "invest")
+            monthlyInvest += amt;
+        }
       }
 
       // Balance logic
@@ -191,6 +193,8 @@ const Dashboard = () => {
       } else if (type === "transfer") {
         if (t.paymentMode === "loan") signed = -amt;
         else if (t.paymentMode === "borrow") signed = +amt;
+      } else if (type === "investment" || type === "invest") {
+        signed = -amt;
       }
 
       const pm = detectPaymentMode(t);
@@ -280,22 +284,22 @@ const Dashboard = () => {
   /* ------------------ Animated Numbers ------------------ */
 
   const animatedBalance = useAnimatedNumber(
-    convert(Number(effectiveBalance) || 0)
+    convert(Number(effectiveBalance) || 0),
   );
   const animatedIncome = useAnimatedNumber(
-    convert(Number(effectiveIncome) || 0)
+    convert(Number(effectiveIncome) || 0),
   );
   const animatedExpense = useAnimatedNumber(
-    convert(Number(effectiveExpense) || 0)
+    convert(Number(effectiveExpense) || 0),
   );
   const animatedInvest = useAnimatedNumber(
-    convert(Number(effectiveInvest) || 0)
+    convert(Number(effectiveInvest) || 0),
   );
   const animatedCash = useAnimatedNumber(convert(Number(effectiveCash) || 0));
   const animatedBank = useAnimatedNumber(convert(Number(effectiveBank) || 0));
   const animatedLent = useAnimatedNumber(convert(Number(effectiveLent) || 0));
   const animatedBorrowed = useAnimatedNumber(
-    convert(Number(effectiveBorrowed) || 0)
+    convert(Number(effectiveBorrowed) || 0),
   );
 
   /* ------------------ Skeleton decision ------------------ */

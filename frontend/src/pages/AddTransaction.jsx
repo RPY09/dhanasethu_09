@@ -56,6 +56,7 @@ const AddTransaction = () => {
 
     try {
       await addTransaction(payload);
+      window.dispatchEvent(new Event("transactions:changed"));
 
       const updatedQueue = getQueue().filter((t) => t.id !== localTx.id);
       saveQueue(updatedQueue);
