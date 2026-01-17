@@ -3,14 +3,15 @@ const Loan = require("../models/LoanModel");
 
 exports.addTransaction = async (req, res) => {
   try {
-    console.log("USER:", req.user);
-
-    const transaction = await Transaction.create({
+    // create
+    const created = await Transaction.create({
       ...req.body,
       user: req.user._id,
     });
 
-    res.status(201).json(transaction);
+    // Re-query so post("init") runs and fields (amount, category, note) are decrypted
+    const fresh = await Transaction.findById(created._id);
+    res.status(201).json(fresh);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: err.message });
@@ -41,10 +42,11 @@ exports.updateTransaction = async (req, res) => {
     }
 
     Object.assign(transaction, req.body);
-
     await transaction.save();
 
-    res.json(transaction);
+    // Re-query to run post("init") decryption
+    const fresh = await Transaction.findById(transaction._id);
+    res.json(fresh);
   } catch (err) {
     res.status(500).json({ message: "Failed to update transaction" });
   }
@@ -73,7 +75,6 @@ exports.deleteTransaction = async (req, res) => {
   }
 };
 
-// GET DISTINCT TRANSACTION TYPES (income / expense / loan / borrowed)
 exports.getTransactionTypes = async (req, res) => {
   try {
     const transactions = await Transaction.find(

@@ -1,7 +1,7 @@
 const Loan = require("../models/LoanModel");
 const Transaction = require("../models/TransactionModel");
-const { decrypt } = require("../utils/crypto.utils");
 
+// Helper: try to close loan when fully repaid
 const checkAndCloseLoan = async (loan) => {
   const remainingInterest =
     Number(loan.interestAmount || 0) - Number(loan.interestPaid || 0);
@@ -16,47 +16,40 @@ const checkAndCloseLoan = async (loan) => {
   return false;
 };
 
+/* ========== ADD LOAN ========== */
 exports.addLoan = async (req, res) => {
   try {
     const amount = Number(req.body.amount);
+    const paymentMethod = req.body.paymentMethod;
+
+    if (!["cash", "bank"].includes(paymentMethod)) {
+      return res.status(400).json({ message: "Invalid payment method" });
+    }
 
     const loanPayload = {
       ...req.body,
       user: req.user._id,
       principal: amount,
+      paymentMethod,
     };
 
     const loan = await Loan.create(loanPayload);
+    const personPlain = req.body.person || "Unknown";
 
-    const principal = Number(req.body.amount);
-    const personPlain = req.body.person || "";
-    const contactPlain = req.body.contact || "";
-
-    if (loan.role === "lent") {
-      await Transaction.create({
-        user: req.user._id,
-        loanId: loan._id,
-        type: "expense",
-        amount: principal,
-        category: "loan principal",
-        paymentMode: "loan",
-        isPrincipal: true,
-        note: `Loan given to ${personPlain}`,
-      });
-    }
-
-    if (loan.role === "borrowed") {
-      await Transaction.create({
-        user: req.user._id,
-        loanId: loan._id,
-        type: "income",
-        amount: principal,
-        category: "Borrowed principal",
-        paymentMode: "borrow",
-        isPrincipal: true,
-        note: `Loan borrowed from ${personPlain}`,
-      });
-    }
+    await Transaction.create({
+      user: req.user._id,
+      loanId: loan._id,
+      type: "transfer",
+      amount,
+      category: loan.role === "lent" ? "Loan given" : "Loan borrowed",
+      paymentMode: loan.role === "lent" ? "loan" : "borrow",
+      paymentMethod,
+      note:
+        loan.role === "lent"
+          ? `Loan given to ${personPlain}`
+          : `Loan borrowed from ${personPlain}`,
+      isPrincipal: true,
+    });
 
     res.status(201).json(loan);
   } catch (err) {
@@ -65,7 +58,7 @@ exports.addLoan = async (req, res) => {
   }
 };
 
-/* GET USER LOANS */
+/* ========== GET USER LOANS ========== */
 exports.getLoans = async (req, res) => {
   try {
     const loans = await Loan.find({ user: req.user._id }).sort({
@@ -74,11 +67,12 @@ exports.getLoans = async (req, res) => {
 
     res.json(loans);
   } catch (err) {
+    console.error("GET LOANS ERROR:", err);
     res.status(500).json({ message: "Failed to fetch loans" });
   }
 };
 
-/* MARK AS SETTLED */
+/* ========== SETTLE LOAN ========== */
 exports.settleLoan = async (req, res) => {
   try {
     const { paidAmount, paymentType } = req.body;
@@ -90,6 +84,12 @@ exports.settleLoan = async (req, res) => {
 
     if (!loan) {
       return res.status(404).json({ message: "Loan not found" });
+    }
+
+    // determine paymentMethod: prefer client-provided, otherwise fallback to loan.paymentMethod
+    const paymentMethod = req.body.paymentMethod || loan.paymentMethod;
+    if (!["cash", "bank"].includes(paymentMethod)) {
+      return res.status(400).json({ message: "Invalid payment method" });
     }
 
     if (loan.settled) {
@@ -112,7 +112,11 @@ exports.settleLoan = async (req, res) => {
     );
     const remainingPrincipal = Math.max(loan.principal, 0);
 
-    /* ================= INTEREST ================= */
+    /* ===== INTEREST PAYMENT =====
+       Interest payments SHOULD count as income (for lenders) or expense (for borrowers).
+       They use type income/expense and isPrincipal: false so Dashboard will include them
+       in monthlyIncome/monthlyExpense.
+    */
     if (paymentType === "interest") {
       if (remainingInterest <= 0) {
         return res.status(400).json({ message: "No interest remaining" });
@@ -125,8 +129,12 @@ exports.settleLoan = async (req, res) => {
         loanId: loan._id,
         type: loan.role === "lent" ? "income" : "expense",
         amount: interestToPay,
-        category: loan.role === "lent" ? "loan interest" : "borrowed interest",
+        category:
+          loan.role === "lent"
+            ? "Loan interest earned"
+            : "Borrowed interest paid",
         paymentMode: loan.role === "lent" ? "loan" : "borrow",
+        paymentMethod,
         isPrincipal: false,
       });
 
@@ -140,7 +148,15 @@ exports.settleLoan = async (req, res) => {
       return res.json({ message: "Interest payment recorded" });
     }
 
-    /* ================= PRINCIPAL ================= */
+    /* ===== PRINCIPAL PAYMENT =====
+       Principal repayments should update balances but NOT be counted as income/expense.
+       We'll create transfer transactions with isPrincipal: true and set paymentMode so
+       computeSummaryFrom signs them correctly:
+         - If user.role === 'lent' (you lent money), receiving principal is a positive inflow:
+             create type: "transfer", paymentMode: "borrow"  => signed = +amt
+         - If user.role === 'borrowed' (you borrowed), repaying principal is an outflow:
+             create type: "transfer", paymentMode: "loan" => signed = -amt
+    */
     if (paymentType === "principal") {
       if (paid > remainingPrincipal) {
         return res
@@ -148,16 +164,31 @@ exports.settleLoan = async (req, res) => {
           .json({ message: "Paid amount exceeds principal" });
       }
 
-      await Transaction.create({
-        user: req.user._id,
-        loanId: loan._id,
-        type: "transfer",
-        amount: paid,
-        category:
-          loan.role === "lent" ? "loan principal" : "borrowed principal",
-        paymentMode: loan.role === "lent" ? "loan" : "borrow",
-        isPrincipal: true,
-      });
+      if (loan.role === "lent") {
+        // Lender receives principal back -> create transfer with paymentMode 'borrow' to make it positive
+        await Transaction.create({
+          user: req.user._id,
+          loanId: loan._id,
+          type: "transfer",
+          amount: paid,
+          category: "Loan principal received",
+          paymentMode: "borrow",
+          paymentMethod,
+          isPrincipal: true,
+        });
+      } else {
+        // Borrower repays principal -> create transfer with paymentMode 'loan' to make it negative
+        await Transaction.create({
+          user: req.user._id,
+          loanId: loan._id,
+          type: "transfer",
+          amount: paid,
+          category: "Borrowed principal repaid",
+          paymentMode: "loan",
+          paymentMethod,
+          isPrincipal: true,
+        });
+      }
 
       loan.principal -= paid;
 
@@ -169,7 +200,9 @@ exports.settleLoan = async (req, res) => {
       return res.json({ message: "Principal payment recorded" });
     }
 
-    /* ================= FULL ================= */
+    /* ===== FULL SETTLEMENT =====
+       Apply same principal logic for the principal portion, and keep interest as income/expense.
+    */
     if (paymentType === "full") {
       const totalRemaining = remainingPrincipal + remainingInterest;
 
@@ -179,19 +212,34 @@ exports.settleLoan = async (req, res) => {
         });
       }
 
+      // Principal portion
       if (remainingPrincipal > 0) {
-        await Transaction.create({
-          user: req.user._id,
-          loanId: loan._id,
-          type: "transfer",
-          amount: remainingPrincipal,
-          category:
-            loan.role === "lent" ? "loan principal" : "borrowed principal",
-          paymentMode: loan.role === "lent" ? "loan" : "borrow",
-          isPrincipal: true,
-        });
+        if (loan.role === "lent") {
+          await Transaction.create({
+            user: req.user._id,
+            loanId: loan._id,
+            type: "transfer",
+            amount: remainingPrincipal,
+            category: "loan principal",
+            paymentMode: "borrow",
+            paymentMethod,
+            isPrincipal: true,
+          });
+        } else {
+          await Transaction.create({
+            user: req.user._id,
+            loanId: loan._id,
+            type: "transfer",
+            amount: remainingPrincipal,
+            category: "borrowed principal",
+            paymentMode: "loan",
+            paymentMethod,
+            isPrincipal: true,
+          });
+        }
       }
 
+      // Interest portion (counts as income/expense)
       if (remainingInterest > 0) {
         await Transaction.create({
           user: req.user._id,
@@ -201,6 +249,7 @@ exports.settleLoan = async (req, res) => {
           category:
             loan.role === "lent" ? "loan interest" : "borrowed interest",
           paymentMode: loan.role === "lent" ? "loan" : "borrow",
+          paymentMethod,
           isPrincipal: false,
         });
       }
@@ -222,7 +271,7 @@ exports.settleLoan = async (req, res) => {
   }
 };
 
-// UPDATE LOAN
+/* ========== UPDATE LOAN ========== */
 exports.updateLoan = async (req, res) => {
   try {
     const loan = await Loan.findOne({
@@ -234,13 +283,17 @@ exports.updateLoan = async (req, res) => {
       return res.status(404).json({ message: "Loan not found" });
     }
 
-    const oldAmount = Number(loan.principal);
-
-    // Update loan
+    // Update loan fields from body
     Object.assign(loan, req.body);
-    loan.principal = Number(req.body.amount);
+
+    // Keep principal in sync with amount if amount provided
+    if (req.body.amount != null) {
+      loan.principal = Number(req.body.amount);
+    }
+
     await loan.save();
 
+    // Update the related principal transaction (if exists)
     await Transaction.findOneAndUpdate(
       {
         loanId: loan._id,
@@ -259,11 +312,12 @@ exports.updateLoan = async (req, res) => {
 
     res.json(loan);
   } catch (err) {
+    console.error("UPDATE LOAN ERROR:", err);
     res.status(500).json({ message: err.message });
   }
 };
 
-// DELETE LOAN
+/* ========== DELETE LOAN ========== */
 exports.deleteLoan = async (req, res) => {
   try {
     const loan = await Loan.findOneAndDelete({
@@ -273,7 +327,7 @@ exports.deleteLoan = async (req, res) => {
 
     if (!loan) return res.status(404).json({ message: "Loan not found" });
 
-    //  DELETE RELATED TRANSACTIONS
+    // Delete related transactions
     await Transaction.deleteMany({
       user: req.user._id,
       loanId: loan._id,
@@ -281,11 +335,12 @@ exports.deleteLoan = async (req, res) => {
 
     res.json({ message: "Loan & related transactions deleted" });
   } catch (err) {
+    console.error("DELETE LOAN ERROR:", err);
     res.status(500).json({ message: err.message });
   }
 };
 
-// GET ACTIVE LOAN SUMMARY (Dashboard)
+/* ========== GET ACTIVE LOAN SUMMARY ========== */
 exports.getLoanSummary = async (req, res) => {
   try {
     const loans = await Loan.find({
@@ -297,9 +352,9 @@ exports.getLoanSummary = async (req, res) => {
     let totalBorrowed = 0;
 
     loans.forEach((l) => {
-      const amt = Number(l.amount);
-      if (l.role === "lent") totalLent += amt;
-      if (l.role === "borrowed") totalBorrowed += amt;
+      const remaining = Number(l.principal || 0);
+      if (l.role === "lent") totalLent += remaining;
+      if (l.role === "borrowed") totalBorrowed += remaining;
     });
 
     res.json({
@@ -307,6 +362,7 @@ exports.getLoanSummary = async (req, res) => {
       borrowed: totalBorrowed,
     });
   } catch (err) {
+    console.error("GET LOAN SUMMARY ERROR:", err);
     res.status(500).json({ message: "Failed to fetch loan summary" });
   }
 };

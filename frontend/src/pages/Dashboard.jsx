@@ -17,8 +17,20 @@ const formatCurrency = (v) =>
   parseNumber(v).toLocaleString("en-IN", { maximumFractionDigits: 0 });
 
 const detectPaymentMode = (t = {}) => {
-  const raw = t.paymentMode || t.method || t.paymentMethod || "";
-  return String(raw).toLowerCase();
+  const raw = t.paymentMethod || t.method || t.paymentMode || "";
+
+  const val = String(raw).toLowerCase();
+
+  if (val.includes("cash")) return "cash";
+  if (
+    val.includes("bank") ||
+    val.includes("online") ||
+    val.includes("upi") ||
+    val.includes("card")
+  )
+    return "bank";
+
+  return "unknown";
 };
 
 /* ------------------ Component ------------------ */
@@ -161,7 +173,7 @@ const Dashboard = () => {
       const amt = parseNumber(t.amount);
       const type = (t.type || "").toLowerCase();
 
-      // monthly stats (use transaction date)
+      // Monthly stats
       if (d.getMonth() === month && d.getFullYear() === year) {
         if (type === "income") monthlyIncome += amt;
         else if (type === "expense") monthlyExpense += amt;
@@ -169,10 +181,22 @@ const Dashboard = () => {
           monthlyInvest += amt;
       }
 
-      // balance
-      const signed = type === "income" ? amt : -amt;
-      if (detectPaymentMode(t).includes("cash")) cash += signed;
-      else bank += signed;
+      // Balance logic
+      let signed = 0;
+
+      if (type === "income") {
+        signed = amt;
+      } else if (type === "expense") {
+        signed = -amt;
+      } else if (type === "transfer") {
+        if (t.paymentMode === "loan") signed = -amt;
+        else if (t.paymentMode === "borrow") signed = +amt;
+      }
+
+      const pm = detectPaymentMode(t);
+
+      if (pm === "cash") cash += signed;
+      else if (pm === "bank") bank += signed;
     });
 
     return {
@@ -218,6 +242,29 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchTransactions();
+  }, [fetchTransactions]);
+  useEffect(() => {
+    const onLoansChanged = () => {
+      // refetch loan summary only
+      (async () => {
+        try {
+          const data = await getLoanSummary();
+          setLoanSummary({
+            lent: data?.lent || 0,
+            borrowed: data?.borrowed || 0,
+          });
+          localStorage.setItem("loan_cache", JSON.stringify(data || {}));
+        } catch {}
+      })();
+    };
+
+    window.addEventListener("loans:changed", onLoansChanged);
+    window.addEventListener("transactions:changed", fetchTransactions);
+
+    return () => {
+      window.removeEventListener("loans:changed", onLoansChanged);
+      window.removeEventListener("transactions:changed", fetchTransactions);
+    };
   }, [fetchTransactions]);
 
   /* ------------------ Derived values (use cached summary if present) ------------------ */

@@ -13,6 +13,7 @@ const Loans = () => {
   const [quickDuration, setQuickDuration] = useState(null);
   const [loading, setLoading] = useState(false);
   const { baseSymbol, baseCurrency, baseCountry } = useCurrency();
+  const [paymentMethod, setPaymentMethod] = useState("cash");
 
   const [form, setForm] = useState({
     person: "",
@@ -108,6 +109,7 @@ const Loans = () => {
 
     const payload = {
       ...form,
+      paymentMethod,
       amount: String(form.amount),
       interestRate: String(form.interestRate),
       interestAmount: String(interestAmount),
@@ -181,7 +183,29 @@ const Loans = () => {
 
           <div className="row">
             <div className="input-group">
-              <label>Principal ({baseCurrency})</label>
+              <div className="date-header">
+                <label>Principal</label>
+                <div className="duration-toggle">
+                  <div
+                    className={`toggle-slider ${paymentMethod === "bank" ? "slide-right" : "slide-left"}`}
+                  />
+                  <button
+                    type="button"
+                    className={`toggle-btn ${paymentMethod === "cash" ? "active" : ""}`}
+                    onClick={() => setPaymentMethod("cash")}
+                  >
+                    CASH
+                  </button>
+                  <button
+                    type="button"
+                    className={`toggle-btn ${paymentMethod === "bank" ? "active" : ""}`}
+                    onClick={() => setPaymentMethod("bank")}
+                  >
+                    BANK
+                  </button>
+                </div>
+              </div>
+
               <input
                 type="number"
                 name="amount"
@@ -252,7 +276,7 @@ const Loans = () => {
                       }));
                     }}
                   >
-                    M
+                    Month
                   </button>
                   <button
                     type="button"
@@ -265,7 +289,7 @@ const Loans = () => {
                       }));
                     }}
                   >
-                    Y
+                    Year
                   </button>
                 </div>
               </div>

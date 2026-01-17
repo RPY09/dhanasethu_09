@@ -15,6 +15,7 @@ const Notifications = () => {
   const { showAlert } = useAlert();
   const { symbol, convert } = useCurrency();
   const [page, setPage] = useState(1);
+  const [paymentMethod, setPaymentMethod] = useState("cash");
 
   const [loans, setLoans] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -336,6 +337,7 @@ Thank you.`;
       await settleLoan(selectedLoan._id, {
         paidAmount: Number(paidAmount),
         paymentType,
+        paymentMethod,
       });
 
       sendWhatsAppMessage(selectedLoan, paidAmount, paymentType);
@@ -514,7 +516,39 @@ Thank you.`;
                   </button>
                 </div>
               </div>
+              {/* In Notifications.jsx, find the payment-toggle div inside the AnimatePresence modal */}
 
+              <div className="date-header">
+                <label
+                  style={{
+                    fontSize: "10px",
+                    fontWeight: "800",
+                    color: "var(--text-muted)",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Payment Method
+                </label>
+                <div className="duration-toggle">
+                  <div
+                    className={`toggle-slider ${paymentMethod === "bank" ? "slide-right" : "slide-left"}`}
+                  />
+                  <button
+                    type="button"
+                    className={`toggle-btn ${paymentMethod === "cash" ? "active" : ""}`}
+                    onClick={() => setPaymentMethod("cash")}
+                  >
+                    CASH
+                  </button>
+                  <button
+                    type="button"
+                    className={`toggle-btn ${paymentMethod === "bank" ? "active" : ""}`}
+                    onClick={() => setPaymentMethod("bank")}
+                  >
+                    BANK
+                  </button>
+                </div>
+              </div>
               <div className="payment-options">
                 <label
                   className={`option-card ${paymentType === "interest" ? "active" : ""} ${getRemainingInterest(selectedLoan) <= 0 ? "disabled" : ""}`}

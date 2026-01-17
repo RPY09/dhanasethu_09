@@ -16,6 +16,11 @@ const loanSchema = new mongoose.Schema(
 
     amount: { type: String, required: true }, // original principal (encrypted)
     principal: { type: Number, required: true }, // remaining principal
+    paymentMethod: {
+      type: String,
+      enum: ["cash", "bank"],
+      required: true,
+    },
 
     interestRate: { type: String }, // encrypted
     interestType: {

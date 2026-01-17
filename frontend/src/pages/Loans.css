@@ -149,33 +149,26 @@ input.dates {
   gap: 6px;
 }
 
+/* Update or add these specific styles */
+
 .date-header {
   position: relative;
   display: flex;
   align-items: center;
-  width: 132px;
-  height: 20px;
-}
-
-.date-header label {
-  margin-bottom: 0 !important;
-  font-size: 10px;
-  font-weight: 800;
-  color: var(--text-muted);
+  justify-content: space-between; /* Ensures label is left, toggle is right */
+  width: 100%; /* Changed from 132px to fill the input width */
+  height: 15px;
+  margin-bottom: 6px;
 }
 
 .duration-toggle {
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  position: relative; /* Changed from absolute for better flow in the header */
   display: flex;
-  background: var(--card-bg);
-
-  border: 1.5px solid var(--card-bg);
+  background: var(--bg-soft); /* Contrast against card background */
+  border: 1px solid var(--text-muted);
   border-radius: 8px;
-  width: 50px;
-  height: 20px;
+  width: 70px; /* Increased width for Cash/Bank text */
+  height: 22px;
   padding: 1px;
   z-index: 10;
 }
@@ -191,13 +184,6 @@ input.dates {
   z-index: 1;
 }
 
-.slide-left {
-  transform: translateX(0);
-}
-.slide-right {
-  transform: translateX(100%);
-}
-
 .toggle-btn {
   flex: 1;
   border: none;
@@ -211,6 +197,15 @@ input.dates {
   align-items: center;
   justify-content: center;
   padding: 0;
+  transition: color 0.2s;
+}
+
+/* Cleanup: You can remove the old .payment-toggle styles if they aren't used elsewhere */
+.slide-left {
+  transform: translateX(0);
+}
+.slide-right {
+  transform: translateX(100%);
 }
 
 .toggle-btn.active {

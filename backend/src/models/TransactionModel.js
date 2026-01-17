@@ -10,10 +10,19 @@ const transactionSchema = new mongoose.Schema(
     type: {
       type: String,
       enum: ["income", "expense", "invest", "transfer"],
-
       required: true,
     },
+
+    // semantic role of the transaction (loan / borrow / etc)
     paymentMode: { type: String, required: true },
+
+    // NEW: medium used (cash | bank | online | upi | card ...)
+    paymentMethod: {
+      type: String,
+      enum: ["cash", "bank", "online", "upi", "card"],
+      // default: "cash",
+    },
+
     isPrincipal: {
       type: Boolean,
       default: false,
@@ -35,7 +44,6 @@ function isEncryptedBlob(str) {
   if (parts.length < 2) return false;
   const iv = parts.shift();
   const cipher = parts.join(":");
-  // iv must be exactly 32 hex chars (16 bytes)
   if (!/^[0-9a-fA-F]{32}$/.test(iv)) return false;
   if (!/^[0-9a-fA-F]+$/.test(cipher)) return false;
   return true;
@@ -73,7 +81,7 @@ transactionSchema.pre("save", function () {
   }
 });
 
-// DECRYPT after fetching (defensive): only attempt decrypt when the value is a full encrypted blob
+// DECRYPT after fetching (defensive)
 transactionSchema.post("init", function (doc) {
   try {
     if (doc.amount && isEncryptedBlob(String(doc.amount))) {
@@ -83,7 +91,7 @@ transactionSchema.post("init", function (doc) {
         console.warn(
           "Failed to decrypt transaction.amount for doc",
           doc._id,
-          err && err.message ? err.message : err
+          err
         );
       }
     }
@@ -91,7 +99,7 @@ transactionSchema.post("init", function (doc) {
     console.warn(
       "Unexpected error while processing amount decryption for doc",
       doc._id,
-      err && err.message ? err.message : err
+      err
     );
   }
 
@@ -103,7 +111,7 @@ transactionSchema.post("init", function (doc) {
         console.warn(
           "Failed to decrypt transaction.category for doc",
           doc._id,
-          err && err.message ? err.message : err
+          err
         );
       }
     }
@@ -111,7 +119,7 @@ transactionSchema.post("init", function (doc) {
     console.warn(
       "Unexpected error while processing category decryption for doc",
       doc._id,
-      err && err.message ? err.message : err
+      err
     );
   }
 
@@ -123,7 +131,7 @@ transactionSchema.post("init", function (doc) {
         console.warn(
           "Failed to decrypt transaction.note for doc",
           doc._id,
-          err && err.message ? err.message : err
+          err
         );
       }
     }
@@ -131,7 +139,7 @@ transactionSchema.post("init", function (doc) {
     console.warn(
       "Unexpected error while processing note decryption for doc",
       doc._id,
-      err && err.message ? err.message : err
+      err
     );
   }
 });
