@@ -90,14 +90,14 @@ npm install npm@latest -g
 git clone https://github.com/RPY09/dhanasethu_09.git
 ```
 ### 2.Navigate to the project folder
-
+```bash
 cd dhanasethu_09
-
+```
 
 ### 3.Install dependencies
-
+```bash
 npm install
-
+```
 
 ### 4.Configure environment variables
 Create a .env file in the backend directory:
@@ -121,7 +121,8 @@ ENCRYPTION_KEY="yout encryption key(32 bit)"
 ```
 ### 5.Start the application
 
-In forntend and backend 
+In forntend and backend folders
+
 Run command 
 ```bash
 npm run dev
