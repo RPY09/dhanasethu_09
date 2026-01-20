@@ -1,4 +1,5 @@
-# <img src="frontend/src/assets/dhanasethuwithname.png" width="40" height="40"/> DhanaSethu  
+# <img src="frontend/src/assets/dhanasethuwithname.png" width="40" height="40"/> DhanaSethu
+
 ### Your Financial Bridge 🌉
 
 **DhanaSethu** is a modern, full-stack **personal finance management platform** built using the **MERN stack**.  
@@ -18,17 +19,21 @@ Managing finances often means juggling multiple apps, notebooks, or spreadsheets
 ## 🚀 Key Features
 
 ### 🔐 User Authentication
+
 - Secure registration and login
 - User-specific data isolation
 - Personalized financial tracking
 
 ### 💰 Financial Tracking
+
 - **Income Management** – Track all sources of earnings
 - **Expense Tracking** – Monitor daily and recurring expenses
 - **Investments** – Track long-term wealth growth
 
 ### 🤝 Deals (Lending & Borrowing)
+
 A dedicated module for real-life money dealings:
+
 - Money **lent** or **borrowed**
 - Principal amount tracking
 - Interest rates
@@ -36,17 +41,20 @@ A dedicated module for real-life money dealings:
 - Completely separated from income & expense flow
 
 ### 🏦 Dual-Wallet System
+
 - **Cash in Hand**
 - **Online / Bank Balance**
 
 > Reflects real-world money movement accurately.
 
 ### 📊 Financial Insights
+
 - Visual summaries & analytics
 - Clear understanding of spending habits
 - Better financial decision-making
 
 ### 🎨 Universal UI
+
 - Clean & intuitive design
 - Suitable for all age groups
 - Focused on clarity and usability
@@ -56,16 +64,20 @@ A dedicated module for real-life money dealings:
 ## 🛠️ Tech Stack
 
 ### Frontend
+
 - React.js
 
 ### Backend
+
 - Node.js
 - Express.js
 
 ### Database
+
 - MongoDB
 
 ### Deployment
+
 - Frontend: Vercel
 - Backend: Render
 
@@ -76,31 +88,40 @@ A dedicated module for real-life money dealings:
 Follow the steps below to run the project locally.
 
 ### ✅ Prerequisites
+
 - Node.js (v18+ recommended)
 - npm (latest)
 
 ```bash
 npm install npm@latest -g
 ```
+
 ---
+
 # ⚙️ Setup Instructions
 
 ### 1.Clone the repository
+
 ```bash
 git clone https://github.com/RPY09/dhanasethu_09.git
 ```
+
 ### 2.Navigate to the project folder
+
 ```bash
 cd dhanasethu_09
 ```
 
 ### 3.Install dependencies
+
 ```bash
 npm install
 ```
 
 ### 4.Configure environment variables
+
 Create a .env file in the backend directory:
+
 ```bash
 PORT=5000
 
@@ -119,11 +140,13 @@ EMAIL_PASS="worls for local"
 ENCRYPTION_KEY="yout encryption key(32 bit)"
 
 ```
+
 ### 5.Start the application
 
 In forntend and backend folders
 
-Run command 
+Run command
+
 ```bash
 npm run dev
 ```
