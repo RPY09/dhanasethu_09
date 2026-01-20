@@ -212,30 +212,51 @@
   width: 100%;
   max-width: 500px;
   background: var(--card-bg);
-
   height: 50vh;
   display: flex;
   flex-direction: column;
-
   border-radius: 30px 30px 0 0;
   padding: 24px;
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 -10px 40px #00000026;
   animation: slideUp 0.3s ease-out;
+  overflow: hidden;
 }
-
+.currency-dropdown {
+  height: 95%;
+}
 .currency-modal .country-list-container {
   flex: 1;
   overflow-y: auto;
   margin-top: 16px;
   padding-right: 4px;
+  height: 95%;
 }
-
+.currency-list {
+  max-height: 100%;
+  overflow-y: auto;
+}
 .currency-modal .country-list-container::-webkit-scrollbar {
   width: 4px;
 }
 .currency-modal .country-list-container::-webkit-scrollbar-thumb {
   background: var(--accent);
   border-radius: 10px;
+}
+.currency-dropdown::-webkit-scrollbar {
+  width: 4px;
+}
+.currency-dropdown::-webkit-scrollbar-track {
+  background: var(--bg-soft);
+}
+.currency-dropdown::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 999px;
+}
+
+/* Firefox */
+.currency-dropdown {
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) var(--bg-soft);
 }
 
 @keyframes slideUp {
