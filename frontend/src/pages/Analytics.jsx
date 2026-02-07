@@ -27,6 +27,38 @@ const COLORS = [
   "#1B1B1B",
 ];
 
+const RADIAN = Math.PI / 180;
+const CATEGORY_TOP_N = 5;
+
+const renderCategoryLabel = ({
+  cx,
+  cy,
+  midAngle,
+  outerRadius,
+  index,
+  percent,
+  name,
+}) => {
+  if (index >= CATEGORY_TOP_N || percent < 0.03) return null;
+
+  const radius = outerRadius + 12;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+  return (
+    <text
+      x={x}
+      y={y}
+      fill="var(--text-main)"
+      textAnchor={x > cx ? "start" : "end"}
+      dominantBaseline="central"
+      style={{ fontSize: 10, fontWeight: 600, fontFamily: "Inter" }}
+    >
+      {`${name} ${(percent * 100).toFixed(0)}%`}
+    </text>
+  );
+};
+
 const formatCurrency = (n) =>
   Number(n || 0).toLocaleString("en-IE", { maximumFractionDigits: 0 });
 
@@ -70,12 +102,12 @@ const Analytics = () => {
   const { symbol, convert } = useCurrency();
   const [loading, setLoading] = useState(true);
   const [currentTheme, setCurrentTheme] = useState(
-    document.documentElement.getAttribute("data-theme") || "light"
+    document.documentElement.getAttribute("data-theme") || "light",
   );
   useEffect(() => {
     const observer = new MutationObserver(() => {
       setCurrentTheme(
-        document.documentElement.getAttribute("data-theme") || "light"
+        document.documentElement.getAttribute("data-theme") || "light",
       );
     });
     observer.observe(document.documentElement, {
@@ -94,14 +126,14 @@ const Analytics = () => {
       "#3D4D55",
       "#D3C3B9",
     ],
-    [currentTheme]
+    [currentTheme],
   );
   const barColors = useMemo(
     () => ({
       income: getThemeColor("--accent") || "#B58863",
       expense: getThemeColor("--text-main") || "#10232A",
     }),
-    [currentTheme]
+    [currentTheme],
   );
   const { showAlert } = useAlert();
 
@@ -169,7 +201,7 @@ const Analytics = () => {
       filteredTransactions
         .filter((t) => t.type === "income")
         .reduce((s, t) => s + Number(t.amount || 0), 0),
-    [filteredTransactions]
+    [filteredTransactions],
   );
 
   const totalExpense = useMemo(
@@ -177,7 +209,7 @@ const Analytics = () => {
       filteredTransactions
         .filter((t) => t.type === "expense")
         .reduce((s, t) => s + Number(t.amount || 0), 0),
-    [filteredTransactions]
+    [filteredTransactions],
   );
 
   const totalInvestment = useMemo(
@@ -185,7 +217,7 @@ const Analytics = () => {
       filteredTransactions
         .filter((t) => isInvestment(t))
         .reduce((s, t) => s + Number(t.amount || 0), 0),
-    [filteredTransactions]
+    [filteredTransactions],
   );
 
   const balance = totalIncome - totalExpense - totalInvestment;
@@ -273,7 +305,7 @@ const Analytics = () => {
         const typeMatch = t.type === categoryFilter;
         // Exclude internal loan/borrow transfers from general breakdown
         const notLoan = !["loan", "borrow"].includes(
-          (t.paymentMode || "").toLowerCase()
+          (t.paymentMode || "").toLowerCase(),
         );
         return typeMatch && notLoan;
       })
@@ -436,7 +468,7 @@ const Analytics = () => {
   // Helper to check if monthlySummaries has any meaningful data for the selected year
   const hasMonthlyData = useMemo(
     () => monthlySummaries.some((m) => m.income || m.expense || m.investment),
-    [monthlySummaries]
+    [monthlySummaries],
   );
 
   const SkeletonStats = () => (
@@ -599,8 +631,8 @@ const Analytics = () => {
                 {symbol}
                 {formatCurrency(
                   convert(
-                    loanStats.loanTotalReceived - loanStats.borrowTotalPaid
-                  )
+                    loanStats.loanTotalReceived - loanStats.borrowTotalPaid,
+                  ),
                 )}
               </h3>
             </div>
@@ -748,21 +780,19 @@ const Analytics = () => {
                   <PieChart>
                     <Pie
                       data={categoryChartData}
-                      // innerRadius={45}
-                      outerRadius={65}
-                      // outerRadius={80}
+                      // innerRadius={55}
+                      outerRadius={75}
+                      paddingAngle={3}
                       dataKey="value"
-                      label={{
-                        fontSize: "10px",
-                        fontWeight: "700",
-                        fill: "var(--text-main)",
-                        fontFamily: "Inter",
-                      }}
-                      labelLine={{ stroke: "#A79E9C", strokeWidth: 1 }}
-                      // label={({ name }) => name}
+                      labelLine={false}
+                      label={renderCategoryLabel}
+                      nameKey="name"
                     >
-                      {categoryChartData.map((_, i) => (
-                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                      {categoryChartData.map((entry, i) => (
+                        <Cell
+                          key={`c-cell-${i}`}
+                          fill={COLORS[i % COLORS.length]}
+                        />
                       ))}
                     </Pie>
                     <Tooltip />
@@ -893,9 +923,9 @@ const Analytics = () => {
                       convert(
                         Math.abs(
                           loanStats.loanInterestReceived -
-                            loanStats.borrowInterestPaid
-                        )
-                      )
+                            loanStats.borrowInterestPaid,
+                        ),
+                      ),
                     )}
                   </span>
                 </div>

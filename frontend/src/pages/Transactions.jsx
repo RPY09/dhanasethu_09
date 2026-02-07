@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getTransactionTypes } from "../api/transaction.api";
 import { useAlert } from "../components/Alert/AlertContext";
 import "./Transactions.css";
+import AnimatedList from "../components/AnimatedList";
+
 import { useCurrency } from "../context/CurrencyContext";
 
 const DEFAULT_LIMIT = 20;
@@ -51,12 +53,17 @@ const Transactions = () => {
   const { symbol, convert } = useCurrency();
 
   // Filters & Sort
+  const [showControls, setShowControls] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [sortBy, setSortBy] = useState("newest");
   const [types, setTypes] = useState([]);
   const [selectedType, setSelectedType] = useState("all");
-
+  const [filters, setFilters] = useState({
+    type: "all", // income | expense | all
+    paymentMode: "all", // cash | bank | loan | all
+    category: "all",
+  });
   const [availableYears, setAvailableYears] = useState([]);
   const containerRef = useRef(null);
   const navigate = useNavigate();
@@ -158,7 +165,7 @@ const Transactions = () => {
       });
 
       setTransactions((prev) =>
-        isReset ? processedData : [...prev, ...processedData]
+        isReset ? processedData : [...prev, ...processedData],
       );
 
       setHasMore(processedData.length === DEFAULT_LIMIT);
@@ -190,7 +197,7 @@ const Transactions = () => {
         } catch (err) {
           showAlert("Failed to delete", "error");
         }
-      }
+      },
     );
   };
 
@@ -290,86 +297,96 @@ const Transactions = () => {
         </div>
         <button
           className="tx-add-fab"
-          onClick={() => navigate("/add-transaction")}
+          onClick={() => setShowControls((prev) => !prev)}
         >
-          +
+          <i className={`bi ${showControls ? "bi-x" : "bi-sliders"}`}></i>
         </button>
       </header>
 
-      <div className="tx-controls">
-        {loading ? (
-          <>
-            <div className="tx-select-group">
-              <div className="skeleton skeleton-select"></div>
-              <div className="skeleton skeleton-select"></div>
-            </div>
-            <div className="tx-select-group">
-              <div className="skeleton skeleton-select"></div>
-              <div className="skeleton skeleton-select"></div>
-            </div>
-          </>
-        ) : (
-          <>
-            {/* TIME FILTERS */}
-            <div className="tx-select-group">
-              <select
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(Number(e.target.value))}
-              >
-                {Array.from({ length: 12 }).map((_, i) => (
-                  <option key={i} value={i}>
-                    {new Date(0, i).toLocaleString("default", {
-                      month: "short",
-                    })}
-                  </option>
-                ))}
-              </select>
+      <AnimatePresence>
+        {showControls && (
+          <motion.div
+            className="tx-controls"
+            initial={{ opacity: 0, height: 0, y: -10 }}
+            animate={{ opacity: 1, height: "auto", y: 0 }}
+            exit={{ opacity: 0, height: 0, y: -10 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+          >
+            {loading ? (
+              <>
+                <div className="tx-select-group">
+                  <div className="skeleton skeleton-select"></div>
+                  <div className="skeleton skeleton-select"></div>
+                </div>
+                <div className="tx-select-group">
+                  <div className="skeleton skeleton-select"></div>
+                  <div className="skeleton skeleton-select"></div>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* TIME FILTERS */}
+                <div className="tx-select-group">
+                  <select
+                    value={selectedMonth}
+                    onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                  >
+                    {Array.from({ length: 12 }).map((_, i) => (
+                      <option key={i} value={i}>
+                        {new Date(0, i).toLocaleString("default", {
+                          month: "short",
+                        })}
+                      </option>
+                    ))}
+                  </select>
 
-              <select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(Number(e.target.value))}
-              >
-                {availableYears.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-            </div>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(Number(e.target.value))}
+                  >
+                    {availableYears.map((y) => (
+                      <option key={y} value={y}>
+                        {y}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            {/* TYPE + SORT */}
-            <div className="tx-select-group">
-              <select
-                value={selectedType}
-                onChange={(e) => {
-                  setSelectedType(e.target.value);
-                  setTransactions([]);
-                  setPage(1);
-                  setHasMore(true);
-                  loadPage(1, true);
-                }}
-              >
-                <option value="all">All Transactions</option>
-                {types.map((t) => (
-                  <option key={t} value={t}>
-                    {t.charAt(0).toUpperCase() + t.slice(1)}
-                  </option>
-                ))}
-              </select>
+                {/* TYPE + SORT */}
+                <div className="tx-select-group">
+                  <select
+                    value={selectedType}
+                    onChange={(e) => {
+                      setSelectedType(e.target.value);
+                      setTransactions([]);
+                      setPage(1);
+                      setHasMore(true);
+                      loadPage(1, true);
+                    }}
+                  >
+                    <option value="all">All Transactions</option>
+                    {types.map((t) => (
+                      <option key={t} value={t}>
+                        {t.charAt(0).toUpperCase() + t.slice(1)}
+                      </option>
+                    ))}
+                  </select>
 
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-              >
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-                <option value="amount-desc">Highest Amount</option>
-                <option value="amount-asc">Lowest Amount</option>
-              </select>
-            </div>
-          </>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                  >
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="amount-desc">Highest Amount</option>
+                    <option value="amount-asc">Lowest Amount</option>
+                  </select>
+                </div>
+              </>
+            )}
+          </motion.div>
         )}
-      </div>
+      </AnimatePresence>
 
       <div className="tx-list" ref={containerRef}>
         {loading ? (
@@ -377,16 +394,13 @@ const Transactions = () => {
         ) : sortedTransactions.length === 0 ? (
           <EmptyState />
         ) : (
-          <AnimatePresence mode="popLayout">
-            {sortedTransactions.map((t, i) => (
-              <motion.div
-                layout
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                key={t._id || i}
-                className="tx-card"
-              >
+          <AnimatedList
+            items={sortedTransactions}
+            enableArrowNavigation={false}
+            showGradients
+            displayScrollbar
+            renderItem={(t) => (
+              <motion.div layout className="tx-card">
                 <div className="tx-card-left">
                   <div className="tx-date-box">
                     <span className="tx-day">{new Date(t.date).getDate()}</span>
@@ -396,21 +410,24 @@ const Transactions = () => {
                       })}
                     </span>
                   </div>
+
                   <div className="tx-info">
                     <span className="tx-category">{t.category}</span>
                     <span className="tx-meta">
                       {t.paymentMode} • {t.type}
                     </span>
-                    {t.note || t.notes || t.description ? (
+
+                    {(t.note || t.notes || t.description) && (
                       <div
                         className="note"
                         style={{ marginTop: 8, fontSize: 13 }}
                       >
                         {t.note || t.notes || t.description}
                       </div>
-                    ) : null}
+                    )}
                   </div>
                 </div>
+
                 <div className="tx-card-right">
                   <span className={`tx-amount ${t.type}`}>
                     {(t.type || "").toLowerCase() === "income" ? "+" : "-"}
@@ -418,7 +435,6 @@ const Transactions = () => {
                   </span>
 
                   <div className="tx-actions">
-                    {/* Edit allowed only for non-loan & non-borrow */}
                     {t.paymentMode !== "loan" && t.paymentMode !== "borrow" && (
                       <button
                         onClick={() =>
@@ -428,6 +444,7 @@ const Transactions = () => {
                         Edit
                       </button>
                     )}
+
                     {!(
                       (t.paymentMode === "loan" ||
                         t.paymentMode === "borrow") &&
@@ -443,8 +460,8 @@ const Transactions = () => {
                   </div>
                 </div>
               </motion.div>
-            ))}
-          </AnimatePresence>
+            )}
+          />
         )}
         {/* {loading && <div className="tx-loader">Updating list...</div>} */}
       </div>

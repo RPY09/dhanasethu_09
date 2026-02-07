@@ -26,6 +26,9 @@
   letter-spacing: 1px;
   font-family: "Playfair Display", serif;
 }
+.tx-controls {
+  overflow: hidden;
+}
 
 .tx-titles p {
   margin: 4px 0 0;
