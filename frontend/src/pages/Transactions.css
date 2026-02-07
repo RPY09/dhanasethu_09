@@ -45,7 +45,7 @@
   background: var(--primary);
   color: var(--bg-soft);
   border: none;
-  font-size: 24px;
+  font-size: 16px;
   box-shadow: 0 8px 16px rgba(16, 35, 42, 0.2);
 }
 
