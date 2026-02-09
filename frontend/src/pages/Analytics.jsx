@@ -3,6 +3,7 @@ import { getTransactions } from "../api/transaction.api";
 import { motion } from "framer-motion";
 import { useAlert } from "../components/Alert/AlertContext";
 import { useCurrency } from "../context/CurrencyContext";
+import { generateAnalyticsPdf } from "../utils/analyticsPdf";
 
 import {
   BarChart,
@@ -26,38 +27,6 @@ const COLORS = [
   "#D3C3B9",
   "#1B1B1B",
 ];
-
-const RADIAN = Math.PI / 180;
-const CATEGORY_TOP_N = 5;
-
-const renderCategoryLabel = ({
-  cx,
-  cy,
-  midAngle,
-  outerRadius,
-  index,
-  percent,
-  name,
-}) => {
-  if (index >= CATEGORY_TOP_N || percent < 0.03) return null;
-
-  const radius = outerRadius + 12;
-  const x = cx + radius * Math.cos(-midAngle * RADIAN);
-  const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-  return (
-    <text
-      x={x}
-      y={y}
-      fill="var(--text-main)"
-      textAnchor={x > cx ? "start" : "end"}
-      dominantBaseline="central"
-      style={{ fontSize: 10, fontWeight: 600, fontFamily: "Inter" }}
-    >
-      {`${name} ${(percent * 100).toFixed(0)}%`}
-    </text>
-  );
-};
 
 const formatCurrency = (n) =>
   Number(n || 0).toLocaleString("en-IE", { maximumFractionDigits: 0 });
@@ -91,6 +60,15 @@ const getThemeColor = (variable) => {
     .getPropertyValue(variable)
     .trim();
 };
+
+const scrollableLegendStyle = {
+  width: "100%",
+  maxHeight: 60,
+  overflowY: "auto",
+  overflowX: "hidden",
+  paddingRight: 6,
+};
+
 const Analytics = () => {
   const [transactions, setTransactions] = useState([]);
   const [range, setRange] = useState("month");
@@ -99,8 +77,11 @@ const Analytics = () => {
   const [paymentFilter, setPaymentFilter] = useState("income");
   const [categoryFilter, setCategoryFilter] = useState("expense");
   const [investPaymentFilter, setInvestPaymentFilter] = useState("all");
-  const { symbol, convert } = useCurrency();
+  const { symbol, convert, displayCurrency } = useCurrency();
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
+  const rangeOptions = ["week", "month", "year"];
+  const activeRangeIndex = Math.max(rangeOptions.indexOf(range), 0);
   const [currentTheme, setCurrentTheme] = useState(
     document.documentElement.getAttribute("data-theme") || "light",
   );
@@ -250,6 +231,8 @@ const Analytics = () => {
       loanInterestReceived,
       borrowPrincipalPaid,
       borrowInterestPaid,
+      loanTotalReceived: loanPrincipalReceived + loanInterestReceived,
+      borrowTotalPaid: borrowPrincipalPaid + borrowInterestPaid,
     };
   }, [filteredTransactions]);
 
@@ -495,6 +478,55 @@ const Analytics = () => {
     </div>
   );
 
+  const renderScrollableLegend = (props) => (
+    <div className="analytics-legend-scroll">
+      {props.payload?.map((entry, i) => {
+        const amount = Number(entry?.payload?.value || 0);
+        return (
+          <div key={i} className="analytics-legend-item">
+            <div className="analytics-legend-left">
+              <span
+                className="analytics-legend-dot"
+                style={{ backgroundColor: entry.color }}
+              />
+              <span className="analytics-legend-text">{entry.value}</span>
+            </div>
+            <span className="analytics-legend-amount">
+              {symbol} {formatCurrency(convert(amount))}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const handleDownloadPdf = async () => {
+    if (loading || exporting) return;
+
+    setExporting(true);
+    try {
+      await generateAnalyticsPdf({
+        range,
+        selectedMonth,
+        selectedYear,
+        symbol,
+        displayCurrency,
+        convert,
+        totalIncome,
+        totalExpense,
+        totalInvestment,
+        balance,
+        filteredTransactions,
+      });
+      showAlert("Analytics PDF downloaded", "success");
+    } catch (error) {
+      console.error(error);
+      showAlert("Failed to generate analytics PDF", "error");
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <motion.div
       className="analytics-container"
@@ -502,9 +534,27 @@ const Analytics = () => {
       animate={{ opacity: 1 }}
     >
       <header className="analytics-header">
-        <div>
-          <h1>Analytics</h1>
-          <p className="subtitle">Visualizing your financial flow</p>
+        <div className="header-download">
+          <div>
+            <h1>Analytics</h1>
+            <p className="subtitle">Visualizing your financial flow</p>
+          </div>
+          <button
+            className="tx-add-fab"
+            onClick={handleDownloadPdf}
+            disabled={loading || exporting}
+            title={
+              exporting
+                ? "Generating PDF..."
+                : "Download analytics and transactions as PDF"
+            }
+          >
+            <i
+              className={`bi ${
+                exporting ? "bi-hourglass-split" : "bi-file-earmark-arrow-down"
+              }`}
+            ></i>
+          </button>{" "}
         </div>
         {loading ? (
           <>
@@ -547,8 +597,15 @@ const Analytics = () => {
                   </select>
                 )}
               </div>
-              <div className="range-toggle">
-                {["week", "month", "year"].map((r) => (
+              <div
+                className="range-toggle"
+                style={{
+                  "--active-index": activeRangeIndex,
+                  "--option-count": rangeOptions.length,
+                }}
+              >
+                <span className="range-toggle-slider" aria-hidden="true" />
+                {rangeOptions.map((r) => (
                   <button
                     key={r}
                     className={range === r ? "active" : ""}
@@ -757,7 +814,13 @@ const Analytics = () => {
                       ))}
                     </Pie>
                     <Tooltip />
-                    <Legend />
+                    <Legend
+                      layout="vertical"
+                      verticalAlign="bottom"
+                      align="center"
+                      wrapperStyle={scrollableLegendStyle}
+                      content={renderScrollableLegend}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -780,26 +843,30 @@ const Analytics = () => {
                   <PieChart>
                     <Pie
                       data={categoryChartData}
-                      // innerRadius={55}
-                      outerRadius={75}
-                      paddingAngle={3}
+                      // innerRadius={45}
+                      outerRadius={65}
+                      // outerRadius={80}
                       dataKey="value"
-                      labelLine={false}
-                      label={renderCategoryLabel}
-                      nameKey="name"
+                      label={{
+                        fontSize: "10px",
+                        fontWeight: "700",
+                        fill: "var(--text-main)",
+                        fontFamily: "Inter",
+                      }}
+                      labelLine={{ stroke: "#A79E9C", strokeWidth: 1 }}
+                      // label={({ name }) => name}
                     >
-                      {categoryChartData.map((entry, i) => (
-                        <Cell
-                          key={`c-cell-${i}`}
-                          fill={COLORS[i % COLORS.length]}
-                        />
+                      {categoryChartData.map((_, i) => (
+                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
                       ))}
                     </Pie>
                     <Tooltip />
                     <Legend
-                      layout="horizontal"
+                      layout="vertical"
                       verticalAlign="bottom"
                       align="center"
+                      wrapperStyle={scrollableLegendStyle}
+                      content={renderScrollableLegend}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -834,14 +901,16 @@ const Analytics = () => {
                       labelLine={{ stroke: "#A79E9C", strokeWidth: 1 }}
                     >
                       {investmentCategoryData.map((_, i) => (
-                        <Cell key={i} fill={COLORS[(i + 3) % COLORS.length]} />
+                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
                       ))}
                     </Pie>
                     <Tooltip />
                     <Legend
-                      layout="horizontal"
+                      layout="vertical"
                       verticalAlign="bottom"
                       align="center"
+                      wrapperStyle={scrollableLegendStyle}
+                      content={renderScrollableLegend}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -889,7 +958,13 @@ const Analytics = () => {
                       ))}
                     </Pie>
                     <Tooltip />
-                    <Legend />
+                    <Legend
+                      layout="vertical"
+                      verticalAlign="bottom"
+                      align="center"
+                      wrapperStyle={scrollableLegendStyle}
+                      content={renderScrollableLegend}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -958,7 +1033,9 @@ const Analytics = () => {
       {/* MONTHLY CARDS: render only when range === "year" AND we have monthly data */}
       {range === "year" && hasMonthlyData && (
         <>
-          <h3 style={{ marginTop: 18 }}>Monthly Summaries ({selectedYear})</h3>
+          <h3 style={{ marginTop: 18, color: "var(--text-main)" }}>
+            Monthly Summaries ({selectedYear})
+          </h3>
           <div
             style={{
               display: "grid",
@@ -994,7 +1071,7 @@ const Analytics = () => {
       {/* WEEKLY CARDS: render only when range === "week" */}
       {range === "week" && weeklySummaries.length > 0 && (
         <>
-          <h3 style={{ marginTop: 18 }}>
+          <h3 style={{ marginTop: 18, color: "var(--text-main)" }}>
             Weekly Summaries for{" "}
             {new Date(0, selectedMonth).toLocaleString("default", {
               month: "long",

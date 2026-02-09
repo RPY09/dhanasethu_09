@@ -11,13 +11,18 @@
 
 .analytics-header h1 {
   font-size: 28px;
-  font-weight: 500;
+  font-weight: 700;
   color: var(--text-main);
   letter-spacing: 1px;
   font-family: "Playfair Display", serif;
 }
 .analytics-header p {
   color: var(--accent);
+}
+.header-download {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 /* Uniform Filter Bar */
@@ -48,6 +53,22 @@ select {
   padding: 4px;
   border-radius: var(--radius-md);
   display: flex;
+  position: relative;
+  overflow: hidden;
+}
+
+.range-toggle-slider {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  bottom: 4px;
+  width: calc((100% - 8px) / var(--option-count, 3));
+  border-radius: 12px;
+  background: var(--primary);
+  box-shadow: 0 4px 12px rgba(16, 35, 42, 0.2);
+  transform: translateX(calc(var(--active-index, 0) * 100%));
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 0;
 }
 
 .range-toggle button {
@@ -60,13 +81,27 @@ select {
   text-transform: uppercase;
   color: var(--text-muted);
   background: transparent;
-  transition: all 0.2s ease;
+  position: relative;
+  z-index: 1;
+  transform: translateY(0);
+  transition:
+    color 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, color;
+}
+
+.range-toggle button:hover {
+  transform: translateY(-1px);
+}
+
+.range-toggle button:active {
+  transform: translateY(0);
 }
 
 .range-toggle button.active {
-  background: var(--primary);
   color: white;
-  box-shadow: 0 4px 12px rgba(16, 35, 42, 0.2);
+  background: transparent;
+  transform: translateY(-1px);
 }
 
 /* Grid Stats */
@@ -84,6 +119,7 @@ select {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
   border: 1px solid rgba(181, 136, 99, 0.1);
   transition: transform 0.2s ease;
+  color: var(--text-main);
 }
 .stat-card:active {
   transform: scale(0.98);
@@ -127,7 +163,7 @@ select {
 }
 
 .recharts-responsive-container {
-  min-width: 350px;
+  min-width: 0;
 }
 .chart-card h3 {
   font-size: 14px;
@@ -233,4 +269,72 @@ select {
 .skeleton-text {
   height: 14px;
   width: 120px;
+}
+
+.analytics-legend-scroll {
+  max-height: 96px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin: 8px 0 0;
+  padding: 0 6px 0 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+.analytics-legend-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+.analytics-legend-scroll::-webkit-scrollbar-track {
+  background: var(--bg-soft);
+}
+
+.analytics-legend-scroll::-webkit-scrollbar-thumb {
+  background: #271e37;
+  border-radius: 14px;
+}
+
+.analytics-legend-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.analytics-legend-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  width: 100%;
+  min-width: 0;
+  gap: 8px;
+}
+
+.analytics-legend-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.analytics-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: 0 0 10px;
+}
+
+.analytics-legend-text {
+  color: var(--text-main);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: normal;
+  word-break: break-word;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.analytics-legend-amount {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  margin-left: 10px;
+  white-space: nowrap;
 }
