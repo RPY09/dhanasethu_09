@@ -536,7 +536,7 @@ const Analytics = () => {
       <header className="analytics-header">
         <div className="header-download">
           <div>
-            <h1>Analytics</h1>
+            <h1>Statistics</h1>
             <p className="subtitle">Visualizing your financial flow</p>
           </div>
           <button
