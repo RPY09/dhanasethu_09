@@ -478,6 +478,6 @@ export const generateAnalyticsPdf = async ({
   window.open(url, "_blank");
 
   // Keep save commented while using preview mode.
-  // doc.save(fileName);
-  return { fileName, url };
+  doc.save(fileName);
+  // return { fileName, url };
 };
