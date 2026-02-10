@@ -5,7 +5,18 @@ import appIcon from "../assets/dhanasethuIconWithName.png";
 const formatCurrency = (n) =>
   Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 });
 const user = JSON.parse(localStorage.getItem("user") || "{}");
-console.log(user);
+// console.log(user);
+
+const COLORS = {
+  PRIMARY: "#10232A", // Dark Navy
+  ACCENT: "#B58863", // Tan/Gold
+  TEXT_MAIN: "#10232A", // Dark Navy
+  TEXT_MUTED: "#A79E9C", // Greyish Muted
+  BG_SOFT: "#F4F1EE", // Light Cream
+  INCOME: "#22C55E", // Green
+  EXPENSE: "#EF4444", // Red
+  WHITE: "#FFFFFF",
+};
 
 const normalizeBrokenCurrencySymbol = (value = "") => {
   const map = {
@@ -172,7 +183,7 @@ export const generateAnalyticsPdf = async ({
 
   try {
     logoDataUrl = await imageUrlToDataUrl(appIcon);
-    watermarkDataUrl = await createWatermarkDataUrl(logoDataUrl, 0.07);
+    watermarkDataUrl = await createWatermarkDataUrl(logoDataUrl, 0.09);
   } catch {
     logoDataUrl = "";
     watermarkDataUrl = "";
@@ -180,111 +191,96 @@ export const generateAnalyticsPdf = async ({
 
   drawWatermark(doc, watermarkDataUrl, pageWidth, pageHeight);
 
-  // --- 1. DARK NAVY HEADER ---
-  doc.setFillColor(16, 35, 42); // Navy Blue
-  doc.rect(0, 0, pageWidth, 70, "F");
+  // --- 1. HEADER  ---
+  doc.setFillColor(16, 35, 42); // #10232A
+  doc.rect(0, 0, pageWidth, 75, "F");
 
-  // Logo Placeholder (Using the text style from image)
-  const logoLink = "https://dhanasethu09.vercel.app/"; // put your URL
-
-  const imageheadY = 8;
   if (logoDataUrl) {
-    doc.addImage(
-      logoDataUrl,
-      "PNG",
-      pageWidth / 90,
-      imageheadY,
-      110,
-      70,
-      undefined,
-      "FAST",
-    );
+    doc.addImage(logoDataUrl, "PNG", margin, 12, 100, 70, undefined, "FAST");
   }
-  doc.link(pageWidth / 90, imageheadY, 110, 70, { url: logoLink });
-  // doc.setTextColor(234, 179, 8); // Golden color
-  // doc.setFont("times", "bold");
-  // doc.setFontSize(26);
-  // doc.text("DhanaSethu", pageWidth / 2, 60, { align: "center" });
 
-  doc.setTextColor(255, 255, 255);
-  // doc.setFont("helvetica", "normal");
-  // doc.setFontSize(9);
-  // doc.text("Your Financial Bridge", pageWidth / 2, 75, { align: "center" });
+  // Header Titles
+  doc.setFont("times", "bold"); // Closest to Playfair Display in standard jsPDF
+  doc.setFontSize(20);
 
-  doc.setFont("Playfair Display", "bold");
-  doc.setFontSize(18);
-  const headingY = 30;
-  const headingX = pageWidth / 2.2;
-  const headingLeft = "Dhana";
-  const headingMiddle = "Sethu";
-  const headingRight = " Analytics";
-  const leftWidth = doc.getTextWidth(headingLeft);
-  const middleWidth = doc.getTextWidth(headingMiddle);
-  const rightWidth = doc.getTextWidth(headingRight);
-  const headingStartX = headingX - (leftWidth + middleWidth + rightWidth) / 2;
+  const headingX = pageWidth / 2;
+  doc.setTextColor(230, 237, 243); // Dhana
+  doc.text("Dhana", headingX - 45, 35);
 
-  doc.setTextColor(230, 237, 243); // #e6edf3
-  doc.text(headingLeft, headingStartX, headingY);
-  doc.setTextColor(210, 166, 121); // #d2a679
-  doc.text(headingMiddle, headingStartX + leftWidth, headingY);
-  doc.setTextColor(255, 255, 255); // white
-  doc.text(headingRight, headingStartX + leftWidth + middleWidth, headingY);
+  doc.setTextColor(181, 136, 99); // #B58863 - Sethu (Accent)
+  doc.text("Sethu", headingX + 13, 35);
 
-  doc.setFontSize(8);
+  doc.setFontSize(16);
+  doc.setTextColor(255, 255, 255); // Statements
+  doc.text(" Statements", headingX - 35, 55);
+
+  // Meta Info (Right Side)
   doc.setFont("helvetica", "normal");
-  doc.text(`REPORT PERIOD: ${periodLabel.toUpperCase()}`, pageWidth / 2.2, 50, {
-    align: "center",
+  doc.setFontSize(8);
+  doc.setTextColor(167, 158, 156); // #A79E9C (Muted)
+  doc.text(
+    `USER: ${user.name?.toUpperCase() || "GUEST"}`,
+    pageWidth - margin,
+    30,
+    { align: "right" },
+  );
+  doc.text(`PERIOD: ${periodLabel.toUpperCase()}`, pageWidth - margin, 42, {
+    align: "right",
   });
   doc.text(
-    `GENERATED ON: ${new Date().toLocaleDateString("en-IN").toUpperCase()}`,
-    pageWidth / 2.2,
-    60,
-    { align: "center" },
+    `DATE: ${new Date().toLocaleDateString("en-IN")}`,
+    pageWidth - margin,
+    54,
+    { align: "right" },
   );
-  doc.setFontSize(8);
-  doc.text(`Name: ${user.name}`, pageWidth / 1.1, 40, {
-    align: "center",
-  });
-  doc.setFontSize(8);
-  doc.text(`E-Mail: ${user.email}`, pageWidth / 1.18, 55, {
-    align: "center",
-  });
 
-  // --- 2. SUMMARY CARDS (Cream Background) ---
-  let cursorY = 100;
-  const cardWidth = (contentWidth - 30) / 4;
+  // --- 2. SUMMARY BACKDROP ---
+  // doc.setFillColor(24, 41, 48);
+  // doc.rect(0, 75, pageWidth, 4, "F");
+  // doc.setFillColor(48, 66, 72);
+  // doc.rect(0, 79, pageWidth, 6, "F");
+  // doc.setFillColor(96, 102, 100);
+  // doc.rect(0, 85, pageWidth, 8, "F");
+  // doc.setFillColor(181, 136, 99); // accent section
+  // doc.rect(0, 93, pageWidth, 243, "F");
+  let cursorY = 110;
+  const cardWidth = (contentWidth - 24) / 4;
   const summaryData = [
-    { label: "Total Money Paid", val: totalIncome, color: [34, 197, 94] },
-    { label: "Total Money Received", val: totalExpense, color: [239, 68, 68] },
-    { label: "Invest", val: totalInvestment, color: [59, 130, 246] },
-    { label: "Balance", val: balance, color: [16, 35, 42] },
+    { label: "TOTAL RECEIVED", val: totalIncome, color: COLORS.INCOME },
+    { label: "TOTAL PAID", val: totalExpense, color: COLORS.EXPENSE },
+    { label: "INVESTMENT", val: totalInvestment, color: COLORS.ACCENT },
+    { label: "NET BALANCE", val: COLORS.PRIMARY, isBalance: true },
   ];
 
   summaryData.forEach((item, i) => {
     const x = margin + i * (cardWidth + 8);
-    // Card Box
-    doc.setFillColor(248, 245, 242); // Light Cream
-    doc.setDrawColor(220, 210, 200);
-    doc.roundedRect(x, cursorY, cardWidth, 60, 10, 10, "FD");
+
+    // Card Box (lighter)
+    doc.setFillColor(252, 248, 242);
+    doc.setDrawColor(228, 214, 196);
+    doc.roundedRect(x, cursorY, cardWidth, 65, 8, 8, "FD");
 
     // Label
-    doc.setFontSize(9);
-    doc.setTextColor(80, 80, 80);
+    doc.setFontSize(7);
     doc.setFont("helvetica", "bold");
-    doc.text(item.label, x + cardWidth / 2, cursorY + 20, { align: "center" });
+    doc.setTextColor(167, 158, 156); // Muted
+    doc.text(item.label, x + cardWidth / 2, cursorY + 22, { align: "center" });
 
     // Value
-    doc.setFontSize(13);
-    doc.setTextColor(item.color[0], item.color[1], item.color[2]);
+    doc.setFontSize(11);
+    const valColor = item.isBalance ? [16, 35, 42] : hexToRgb(item.color);
+    doc.setTextColor(valColor[0], valColor[1], valColor[2]);
+
+    const displayVal = item.isBalance ? balance : item.val;
     doc.text(
-      `${pdfSymbol} ${formatCurrency(convert(item.val))}`,
+      `${pdfSymbol} ${formatCurrency(convert(displayVal))}`,
       x + cardWidth / 2,
       cursorY + 45,
       { align: "center" },
     );
   });
 
-  cursorY += 100;
+  cursorY += 95;
 
   // --- 2.1 ACCOUNT-WISE PAYMENT CARD ---
   const accountTotals = filteredTransactions.reduce(
@@ -435,16 +431,20 @@ export const generateAnalyticsPdf = async ({
       drawWatermark(doc, watermarkDataUrl, pageWidth, pageHeight);
       cursorY = 50;
     }
-    doc.setDrawColor(220, 210, 200);
-    doc.line(
-      margin + 10,
-      cursorY + 26,
-      margin + contentWidth - 10,
-      cursorY + 26,
-    );
+
+    // Add breathing space + thick two-tone divider before transactions table
+    const dividerY = cursorY + 12;
+    doc.setLineWidth(4);
+    doc.setDrawColor(16, 35, 42); // primary
+    doc.line(margin, dividerY, margin + contentWidth, dividerY);
+    doc.setDrawColor(181, 136, 99); // accent
+    doc.line(margin, dividerY + 5, margin + contentWidth, dividerY + 5);
+    doc.setLineWidth(1);
+    cursorY = dividerY + 28;
+
     doc.setFontSize(15);
     doc.setTextColor(16, 35, 42);
-    doc.text("Recent Transactions", margin, cursorY);
+    doc.text(`Transactions (${periodLabel.toUpperCase()})`, margin, cursorY);
 
     autoTable(doc, {
       startY: cursorY + 10,
@@ -458,12 +458,17 @@ export const generateAnalyticsPdf = async ({
         fontSize: 10,
         fontStyle: "bold",
       },
+      alternateRowStyles: {
+        fillColor: [244, 241, 238],
+      },
       bodyStyles: { fontSize: 9 },
       didParseCell: (data) => {
         if (data.section === "body" && data.column.index === 5) {
           const type = data.row.cells[1].raw;
           if (type === "INCOME") data.cell.styles.textColor = [34, 197, 94];
           if (type === "EXPENSE") data.cell.styles.textColor = [239, 68, 68];
+          if (type === "INVEST") data.cell.styles.textColor = [181, 136, 99];
+
           data.cell.styles.fontStyle = "bold";
         }
       },
@@ -481,3 +486,9 @@ export const generateAnalyticsPdf = async ({
   doc.save(fileName);
   // return { fileName, url };
 };
+function hexToRgb(hex) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return [r, g, b];
+}
