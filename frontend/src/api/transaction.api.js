@@ -34,3 +34,13 @@ export const getTransactionTypes = async () => {
   const res = await api.get("/transactions/types");
   return res.data;
 };
+
+export const getCustomCategories = async () => {
+  const res = await api.get("/transactions/categories");
+  return res.data;
+};
+
+export const addCustomCategory = async (payload) => {
+  const res = await api.post("/transactions/categories", payload);
+  return res.data;
+};

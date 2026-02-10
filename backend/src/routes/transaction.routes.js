@@ -7,10 +7,14 @@ const {
   updateTransaction,
   deleteTransaction,
   getTransactionTypes,
+  getCustomCategories,
+  addCustomCategory,
 } = require("../controllers/transactionController");
 
 router.post("/", protect, addTransaction);
 router.get("/", protect, getTransactions);
+router.get("/categories", protect, getCustomCategories);
+router.post("/categories", protect, addCustomCategory);
 router.put("/:id", protect, updateTransaction);
 router.delete("/:id", protect, deleteTransaction);
 router.get("/types", protect, getTransactionTypes);

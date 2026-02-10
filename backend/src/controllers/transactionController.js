@@ -1,5 +1,6 @@
 const Transaction = require("../models/TransactionModel");
 const Loan = require("../models/LoanModel");
+const User = require("../models/UserModel");
 
 exports.addTransaction = async (req, res) => {
   try {
@@ -93,5 +94,59 @@ exports.getTransactionTypes = async (req, res) => {
     res.json([...types]);
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch transaction types" });
+  }
+};
+
+exports.getCustomCategories = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select("customCategories");
+    const categories = user?.customCategories || {
+      expense: [],
+      income: [],
+      invest: [],
+    };
+    res.json(categories);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch custom categories" });
+  }
+};
+
+exports.addCustomCategory = async (req, res) => {
+  try {
+    const rawType = String(req.body?.type || "").toLowerCase();
+    const rawName = String(req.body?.name || "").trim();
+    const type = ["expense", "income", "invest"].includes(rawType)
+      ? rawType
+      : null;
+
+    if (!type || !rawName) {
+      return res
+        .status(400)
+        .json({ message: "Both type and name are required" });
+    }
+
+    const user = await User.findById(req.user._id).select("customCategories");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (!user.customCategories) {
+      user.customCategories = { expense: [], income: [], invest: [] };
+    }
+
+    const existing = user.customCategories[type] || [];
+    const duplicate = existing.some(
+      (c) => String(c).toLowerCase() === rawName.toLowerCase()
+    );
+    if (!duplicate) {
+      user.customCategories[type].push(rawName);
+    }
+
+    await user.save();
+    res.status(201).json({
+      type,
+      name: rawName,
+      categories: user.customCategories,
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to add custom category" });
   }
 };

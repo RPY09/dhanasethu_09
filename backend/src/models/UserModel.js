@@ -40,6 +40,20 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "Asia/Kolkata",
     },
+    customCategories: {
+      expense: {
+        type: [String],
+        default: [],
+      },
+      income: {
+        type: [String],
+        default: [],
+      },
+      invest: {
+        type: [String],
+        default: [],
+      },
+    },
   },
 
   { timestamps: true }
