@@ -57,7 +57,7 @@ const Navbar = () => {
   const location = useLocation();
 
   const [isAuthenticated, setIsAuthenticated] = useState(
-    Boolean(localStorage.getItem("token"))
+    Boolean(localStorage.getItem("token")),
   );
   const [notificationCount, setNotificationCount] = useState(0);
 
@@ -117,7 +117,7 @@ const Navbar = () => {
             l.role === "lent" &&
             !l.settled &&
             hasPendingAmount(l) &&
-            isNearOrOverdue(l.dueDate)
+            isNearOrOverdue(l.dueDate),
         ).length;
 
         setNotificationCount(count);
@@ -190,31 +190,22 @@ const Navbar = () => {
 
       {/* BOTTOM NAV */}
       <nav className="zira-bottom-nav">
-        {authNavItems.map((it) =>
-          it.type === "link" ? (
+        {authNavItems.map((it) => {
+          const isAddButton = it.key === "add";
+
+          return (
             <Link
               key={it.key}
               to={it.to}
-              className={`zira-nav-item ${isActive(it.to) ? "active" : ""}`}
+              className={`zira-nav-item ${isActive(it.to) ? "active" : ""} ${isAddButton ? "center-action" : ""}`}
             >
               <div className="zira-icon-box">
                 <i className={`bi ${it.icon}`} />
               </div>
-              <span className="zira-label">{it.label}</span>
+              {!isAddButton && <span className="zira-label">{it.label}</span>}
             </Link>
-          ) : (
-            <button
-              key={it.key}
-              className="zira-nav-item logout"
-              onClick={logout}
-            >
-              <div className="zira-icon-box">
-                <i className={`bi ${it.icon}`} />
-              </div>
-              <span className="zira-label">{it.label}</span>
-            </button>
-          )
-        )}
+          );
+        })}
       </nav>
     </>
   );

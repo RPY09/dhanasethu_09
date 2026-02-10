@@ -111,29 +111,97 @@
   }
 }
 
-/*  Bottom Floating Navigation */
 .zira-bottom-nav {
   position: fixed;
   bottom: 20px;
-  left: 20px;
-  right: 20px;
-  height: 70px;
-  /* margin-bottom: 30px; */
+  left: 50%;
+  transform: translateX(-50%);
+
+  /* Dimensions from Guidelines */
+  width: calc(74px * 5); /* 5 items @ 74px each */
+  max-width: 95vw;
+  height: 72px;
+
   background: var(--bg-deep);
-  border-radius: 24px;
+  border-radius: 20px;
   display: flex;
   align-items: center;
-  justify-content: space-around;
-  padding: 0 10px;
-  box-shadow: 0 15px 35px rgba(16, 35, 42, 0.3);
+  justify-content: center;
+  padding: 0;
+  box-shadow: 0 10px 30px rgba(16, 35, 42, 0.4);
   z-index: 9999;
+}
 
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  -webkit-animation: swing-in-bottom-fwd 1.5s
-    cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
-  animation: swing-in-bottom-fwd 1.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)
-    both;
+.zira-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  width: 74px; /* Exact size from image */
+  height: 100%;
+  color: rgba(255, 255, 255, 0.5);
+  transition: all 0.3s ease;
+}
+
+/* Label Style from Image */
+.zira-label {
+  font-size: 12px; /* From image guideline */
+  font-weight: 500;
+  margin-top: 2px;
+  font-family: "Inter", sans-serif;
+}
+
+.zira-icon-box i {
+  font-size: 24px; /* Icon Size - 24px from image */
+}
+
+/* --- THE CENTER (+) BUTTON --- */
+.zira-nav-item.center-action {
+  position: relative;
+  z-index: 999;
+}
+
+.zira-nav-item.center-action .zira-icon-box {
+  background: var(--primary); /* Using your #B58863 */
+  width: 52px; /* Circle inner size from image */
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Lift the button up */
+  transform: translateY(-25px);
+
+  /* White border / "cutout" effect */
+  border: 4px solid var(--bg-soft);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease;
+}
+
+.zira-nav-item.center-action .zira-icon-box i {
+  color: var(--accent);
+  font-size: 28px;
+}
+
+.zira-nav-item.center-action:active .zira-icon-box {
+  transform: translateY(-25px) scale(0.9);
+}
+
+/* Active State */
+.zira-nav-item.active:not(.center-action) {
+  color: var(--accent);
+}
+
+/* Responsive: Ensure it fits on smaller screens */
+@media (max-width: 380px) {
+  .zira-bottom-nav {
+    width: 92vw;
+  }
+  .zira-nav-item {
+    width: 20%;
+  }
 }
 @-webkit-keyframes swing-in-bottom-fwd {
   0% {
