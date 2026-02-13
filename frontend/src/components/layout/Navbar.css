@@ -91,7 +91,7 @@
   color: var(--accent);
 }
 
-/* Special styling for the Add (+) button in the center */
+
 .zira-nav-item[href="/add-transaction"] .zira-icon-box {
   font-size: 1.8rem;
   color: var(--white);
@@ -117,8 +117,8 @@
   left: 50%;
   transform: translateX(-50%);
 
-  /* Dimensions from Guidelines */
-  width: calc(74px * 5); /* 5 items @ 74px each */
+  
+  width: calc(74px * 5);
   max-width: 95vw;
   height: 72px;
 
@@ -138,43 +138,41 @@
   align-items: center;
   justify-content: center;
   text-decoration: none;
-  width: 74px; /* Exact size from image */
+  width: 74px; 
   height: 100%;
   color: rgba(255, 255, 255, 0.5);
   transition: all 0.3s ease;
 }
 
-/* Label Style from Image */
 .zira-label {
-  font-size: 12px; /* From image guideline */
+  font-size: 12px;
   font-weight: 500;
   margin-top: 2px;
   font-family: "Inter", sans-serif;
 }
 
 .zira-icon-box i {
-  font-size: 24px; /* Icon Size - 24px from image */
+  font-size: 24px; 
 }
 
-/* --- THE CENTER (+) BUTTON --- */
+
 .zira-nav-item.center-action {
   position: relative;
   z-index: 999;
 }
 
 .zira-nav-item.center-action .zira-icon-box {
-  background: var(--primary); /* Using your #B58863 */
-  width: 52px; /* Circle inner size from image */
+  background: var(--primary); 
+  width: 52px;
   height: 52px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
 
-  /* Lift the button up */
+
   transform: translateY(-25px);
 
-  /* White border / "cutout" effect */
   border: 4px solid var(--bg-soft);
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
   transition: transform 0.3s ease;

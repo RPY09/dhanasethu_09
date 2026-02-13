@@ -347,6 +347,7 @@ const AddTransaction = () => {
                   type="button"
                   className="category-item add-new"
                   onClick={handleAddCategory}
+                  title={`Add ${normalizedCategorySearch} to Category`}
                 >
                   + "{normalizedCategorySearch}"
                 </button>
