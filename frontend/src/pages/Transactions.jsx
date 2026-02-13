@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getTransactions, deleteTransaction } from "../api/transaction.api";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
@@ -66,7 +66,11 @@ const Transactions = () => {
   });
   const [availableYears, setAvailableYears] = useState([]);
   const containerRef = useRef(null);
+  const longPressTimerRef = useRef(null);
+  const pressStartRef = useRef({ x: 0, y: 0 });
+  const [selectedIds, setSelectedIds] = useState([]);
   const navigate = useNavigate();
+  const isSelectionMode = selectedIds.length > 0;
 
   // Reset and reload when filters/sort change
   useEffect(() => {
@@ -85,6 +89,10 @@ const Transactions = () => {
     return () => window.removeEventListener("transactions:changed", onChanged);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [selectedYear, selectedMonth, sortBy, selectedType]);
 
   async function fetchAvailableYears() {
     try {
@@ -201,6 +209,44 @@ const Transactions = () => {
     );
   };
 
+  const clearLongPressTimer = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  useEffect(() => {
+    return () => clearLongPressTimer();
+  }, []);
+
+  const handleCardPointerDown = (id, e) => {
+    if (isSelectionMode) return;
+    pressStartRef.current = { x: e.clientX, y: e.clientY };
+    clearLongPressTimer();
+    longPressTimerRef.current = setTimeout(() => {
+      setSelectedIds([id]);
+    }, 450);
+  };
+
+  const handleCardPointerMove = (e) => {
+    if (!longPressTimerRef.current) return;
+    const dx = Math.abs(e.clientX - pressStartRef.current.x);
+    const dy = Math.abs(e.clientY - pressStartRef.current.y);
+    if (dx > 8 || dy > 8) clearLongPressTimer();
+  };
+
+  const handleCardPointerEnd = () => {
+    clearLongPressTimer();
+  };
+
+  const handleCardClick = (id) => {
+    if (!isSelectionMode) return;
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
+    );
+  };
+
   const sortedTransactions = [...transactions].sort((a, b) => {
     if (sortBy === "newest") return parseDate(b.date) - parseDate(a.date);
     if (sortBy === "oldest") return parseDate(a.date) - parseDate(b.date);
@@ -210,6 +256,63 @@ const Transactions = () => {
       return parseAmount(a.amount) - parseAmount(b.amount);
     return 0;
   });
+  const selectedTransactions = useMemo(
+    () => sortedTransactions.filter((t) => selectedIds.includes(t._id)),
+    [sortedTransactions, selectedIds],
+  );
+
+  const handleCalculateSelected = () => {
+    const totals = selectedTransactions.reduce(
+      (acc, tx) => {
+        const type = String(tx.type || "").toLowerCase();
+        const amount = convert(parseAmount(tx.amount));
+        if (type === "income") acc.income += amount;
+        if (type === "expense") acc.expense += amount;
+        if (type === "invest") acc.invest += amount;
+        return acc;
+      },
+      { income: 0, expense: 0, invest: 0 },
+    );
+
+    showAlert(
+      `Selected ${selectedTransactions.length} | Income: ${symbol}${totals.income.toLocaleString()} | Expense: ${symbol}${totals.expense.toLocaleString()} | Invest: ${symbol}${totals.invest.toLocaleString()}`,
+      "success",
+    );
+  };
+
+  const handleDeleteSelected = () => {
+    if (!selectedIds.length) return;
+    const count = selectedIds.length;
+    showAlert(
+      `Delete ${count} selected transaction${count > 1 ? "s" : ""}?`,
+      "error",
+      true,
+      async () => {
+        try {
+          const results = await Promise.allSettled(
+            selectedIds.map((id) => deleteTransaction(id)),
+          );
+          const failed = results.filter((r) => r.status === "rejected").length;
+          if (failed) {
+            showAlert(
+              `${count - failed} deleted, ${failed} failed`,
+              failed === count ? "error" : "warning",
+            );
+          } else {
+            showAlert(
+              `${count} transaction${count > 1 ? "s" : ""} deleted`,
+              "success",
+            );
+          }
+          setSelectedIds([]);
+          loadPage(1, true);
+          window.dispatchEvent(new Event("transactions:changed"));
+        } catch {
+          showAlert("Failed to delete selected transactions", "error");
+        }
+      },
+    );
+  };
 
   const EmptyState = () => (
     <div
@@ -302,6 +405,35 @@ const Transactions = () => {
           <i className={`bi ${showControls ? "bi-x" : "bi-sliders"}`}></i>
         </button>
       </header>
+      {isSelectionMode && (
+        <div className="tx-bulk-bar">
+          <span>{selectedIds.length} selected</span>
+          <div className="tx-bulk-actions">
+            <button
+              type="button"
+              title="Calculate"
+              onClick={handleCalculateSelected}
+            >
+              <i class="bi bi-calculator"></i>
+            </button>
+            <button
+              type="button"
+              title="Delete"
+              className="danger"
+              onClick={handleDeleteSelected}
+            >
+              <i class="bi bi-trash3"></i>
+            </button>
+            <button
+              type="button"
+              title="Clear"
+              onClick={() => setSelectedIds([])}
+            >
+              <i className="bi bi-x-lg"></i>
+            </button>
+          </div>
+        </div>
+      )}
 
       <AnimatePresence>
         {showControls && (
@@ -400,7 +532,16 @@ const Transactions = () => {
             showGradients
             displayScrollbar
             renderItem={(t) => (
-              <motion.div layout className="tx-card">
+              <motion.div
+                layout
+                className={`tx-card ${selectedIds.includes(t._id) ? "selected" : ""}`}
+                onPointerDown={(e) => handleCardPointerDown(t._id, e)}
+                onPointerMove={handleCardPointerMove}
+                onPointerUp={handleCardPointerEnd}
+                onPointerLeave={handleCardPointerEnd}
+                onPointerCancel={handleCardPointerEnd}
+                onClick={() => handleCardClick(t._id)}
+              >
                 <div className="tx-card-left">
                   <div className="tx-date-box">
                     <span className="tx-day">{new Date(t.date).getDate()}</span>
@@ -437,9 +578,11 @@ const Transactions = () => {
                   <div className="tx-actions">
                     {t.paymentMode !== "loan" && t.paymentMode !== "borrow" && (
                       <button
-                        onClick={() =>
-                          navigate(`/edit-transaction/${t._id}`, { state: t })
-                        }
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/edit-transaction/${t._id}`, { state: t });
+                        }}
                       >
                         Edit
                       </button>
@@ -452,7 +595,11 @@ const Transactions = () => {
                     ) && (
                       <button
                         className="del"
-                        onClick={() => handleDelete(t._id)}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(t._id);
+                        }}
                       >
                         Delete
                       </button>

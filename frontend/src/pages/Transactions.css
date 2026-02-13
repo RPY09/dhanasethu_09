@@ -50,6 +50,12 @@
   box-shadow: 0 8px 16px rgba(16, 35, 42, 0.2);
 }
 
+.tx-empty-add-btn {
+  display: inline-block;
+  text-decoration: none;
+  line-height: 1.2;
+}
+
 /* Controls / Filters */
 .tx-controls {
   display: flex;
@@ -99,6 +105,50 @@
   justify-content: space-between;
   align-items: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.tx-card.selected {
+  border: 1.5px solid var(--accent);
+  background: rgba(181, 136, 99, 0.12);
+}
+
+.tx-bulk-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--card-bg);
+  border: 1px solid rgba(16, 35, 42, 0.12);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  margin-bottom: 14px;
+}
+
+.tx-bulk-bar span {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.tx-bulk-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.tx-bulk-actions button {
+  border: 0;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: rgba(16, 35, 42, 0.08);
+  color: var(--primary);
+}
+
+.tx-bulk-actions button.danger {
+  background: rgba(217, 83, 79, 0.14);
+  color: var(--expense);
 }
 
 .tx-card-left {
