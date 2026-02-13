@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { addTransaction } from "../api/transaction.api";
+import {
+  addTransaction,
+  addCustomCategory,
+  deleteCustomCategory,
+  getCustomCategories,
+  getTransactions,
+} from "../api/transaction.api";
 import { useAlert } from "../components/Alert/AlertContext";
 import { useCurrency } from "../context/CurrencyContext";
 import { categoriesByType, categoryAliasesByType } from "../utils/categories";
@@ -26,7 +32,18 @@ const AddTransaction = () => {
     income: {},
     invest: {},
   });
+  const [categoryUsage, setCategoryUsage] = useState({
+    expense: {},
+    income: {},
+    invest: {},
+  });
+  const normalizeCategories = (source) => ({
+    expense: Array.isArray(source?.expense) ? source.expense : [],
+    income: Array.isArray(source?.income) ? source.income : [],
+    invest: Array.isArray(source?.invest) ? source.invest : [],
+  });
   const today = new Date().toISOString().split("T")[0];
+  const CATEGORY_CUSTOM_KEY = "category_custom_v1";
   const CATEGORY_ALIAS_KEY = "category_aliases_v1";
   const [form, setForm] = useState({
     amount: "",
@@ -41,6 +58,15 @@ const AddTransaction = () => {
     const custom = customCategories[form.type] || [];
     return [...base, ...custom];
   }, [form.type, customCategories]);
+  const rankedCategories = useMemo(() => {
+    const usage = categoryUsage[form.type] || {};
+    return [...activeCategories].sort((a, b) => {
+      const usageDiff =
+        (usage[b.toLowerCase()] || 0) - (usage[a.toLowerCase()] || 0);
+      if (usageDiff !== 0) return usageDiff;
+      return a.localeCompare(b);
+    });
+  }, [activeCategories, categoryUsage, form.type]);
   const mergedAliases = useMemo(() => {
     const base = categoryAliasesByType[form.type] || {};
     const custom = customAliases[form.type] || {};
@@ -56,17 +82,17 @@ const AddTransaction = () => {
   }, [form.type, customAliases]);
   const filteredCategories = useMemo(() => {
     const search = categorySearch.trim().toLowerCase();
-    if (!search) return activeCategories;
+    if (!search) return rankedCategories;
 
     const aliases = mergedAliases;
-    return activeCategories.filter((cat) => {
+    return rankedCategories.filter((cat) => {
       const nameMatch = cat.toLowerCase().includes(search);
       if (nameMatch) return true;
 
       const words = aliases[cat] || [];
       return words.some((w) => w.toLowerCase().includes(search));
     });
-  }, [activeCategories, categorySearch, mergedAliases]);
+  }, [rankedCategories, categorySearch, mergedAliases]);
   const normalizedCategorySearch = categorySearch.trim();
   const canAddCategory =
     normalizedCategorySearch.length > 0 &&
@@ -78,6 +104,13 @@ const AddTransaction = () => {
     !activeCategories.some((cat) =>
       cat.toLowerCase().includes(normalizedCategorySearch.toLowerCase()),
     );
+  const customCategorySet = useMemo(
+    () =>
+      new Set(
+        (customCategories[form.type] || []).map((cat) => cat.toLowerCase()),
+      ),
+    [customCategories, form.type],
+  );
   const QUEUE_KEY = "unsynced_transactions";
 
   const getQueue = () => JSON.parse(localStorage.getItem(QUEUE_KEY)) || [];
@@ -102,18 +135,70 @@ const AddTransaction = () => {
   }, [showCategoryOverlay]);
 
   useEffect(() => {
-    try {
-      const stored = JSON.parse(
-        localStorage.getItem(CATEGORY_ALIAS_KEY) || "{}",
-      );
-      setCustomAliases({
-        expense: stored.expense || {},
-        income: stored.income || {},
-        invest: stored.invest || {},
+    const buildUsageMap = (items) => {
+      const usageMap = { expense: {}, income: {}, invest: {} };
+      (items || []).forEach((tx) => {
+        const type = String(tx?.type || "").toLowerCase();
+        const category = String(tx?.category || "")
+          .trim()
+          .toLowerCase();
+        if (!usageMap[type] || !category) return;
+        usageMap[type][category] = (usageMap[type][category] || 0) + 1;
       });
-    } catch {
-      setCustomAliases({ expense: {}, income: {}, invest: {} });
-    }
+      return usageMap;
+    };
+
+    const loadCategories = async () => {
+      try {
+        const aliasStored = JSON.parse(
+          localStorage.getItem(CATEGORY_ALIAS_KEY) || "{}",
+        );
+        setCustomAliases({
+          expense: aliasStored.expense || {},
+          income: aliasStored.income || {},
+          invest: aliasStored.invest || {},
+        });
+      } catch {
+        setCustomAliases({ expense: {}, income: {}, invest: {} });
+      }
+
+      try {
+        const remote = await getCustomCategories();
+        const normalized = normalizeCategories(remote);
+        setCustomCategories(normalized);
+        localStorage.setItem(CATEGORY_CUSTOM_KEY, JSON.stringify(normalized));
+      } catch {
+        try {
+          const customStored = JSON.parse(
+            localStorage.getItem(CATEGORY_CUSTOM_KEY) || "{}",
+          );
+          setCustomCategories(normalizeCategories(customStored));
+        } catch {
+          setCustomCategories({ expense: [], income: [], invest: [] });
+        }
+      }
+
+      try {
+        const transactions = await getTransactions();
+        setCategoryUsage(buildUsageMap(transactions));
+      } catch {
+        setCategoryUsage({ expense: {}, income: {}, invest: {} });
+      }
+    };
+
+    loadCategories();
+
+    const onTransactionsChanged = async () => {
+      try {
+        const transactions = await getTransactions();
+        setCategoryUsage(buildUsageMap(transactions));
+      } catch {}
+    };
+
+    window.addEventListener("transactions:changed", onTransactionsChanged);
+    return () => {
+      window.removeEventListener("transactions:changed", onTransactionsChanged);
+    };
   }, []);
 
   const handleCategorySelect = (category) => {
@@ -122,13 +207,29 @@ const AddTransaction = () => {
     setCategorySearch("");
   };
 
-  const handleAddCategory = () => {
+  const handleAddCategory = async () => {
     if (!canAddCategory) return;
     const newCategory = normalizedCategorySearch;
-    setCustomCategories((prev) => ({
-      ...prev,
-      [form.type]: [...(prev[form.type] || []), newCategory],
-    }));
+
+    try {
+      const res = await addCustomCategory({
+        type: form.type,
+        name: newCategory,
+      });
+      const next = normalizeCategories(res?.categories);
+      setCustomCategories(next);
+      localStorage.setItem(CATEGORY_CUSTOM_KEY, JSON.stringify(next));
+    } catch {
+      setCustomCategories((prev) => {
+        const next = {
+          ...prev,
+          [form.type]: [...(prev[form.type] || []), newCategory],
+        };
+        localStorage.setItem(CATEGORY_CUSTOM_KEY, JSON.stringify(next));
+        return next;
+      });
+    }
+
     handleCategorySelect(newCategory);
   };
 
@@ -152,6 +253,54 @@ const AddTransaction = () => {
 
     handleCategorySelect(category);
     showAlert(`Mapped "${keyword}" to ${category}`, "success");
+  };
+
+  const handleRemoveCategory = (category) => {
+    showAlert(
+      `Delete "${category}" from custom categories?`,
+      "warning",
+      true,
+      async () => {
+        try {
+          const res = await deleteCustomCategory({
+            type: form.type,
+            name: category,
+          });
+          const next = normalizeCategories(res?.categories);
+          setCustomCategories(next);
+          localStorage.setItem(CATEGORY_CUSTOM_KEY, JSON.stringify(next));
+        } catch {
+          setCustomCategories((prev) => {
+            const next = {
+              ...prev,
+              [form.type]: (prev[form.type] || []).filter(
+                (cat) => cat.toLowerCase() !== category.toLowerCase(),
+              ),
+            };
+            localStorage.setItem(CATEGORY_CUSTOM_KEY, JSON.stringify(next));
+            return next;
+          });
+        }
+
+        setCustomAliases((prev) => {
+          const nextTypeAliases = { ...(prev[form.type] || {}) };
+          delete nextTypeAliases[category];
+          const next = {
+            ...prev,
+            [form.type]: nextTypeAliases,
+          };
+          localStorage.setItem(CATEGORY_ALIAS_KEY, JSON.stringify(next));
+          return next;
+        });
+
+        setForm((prev) =>
+          prev.category.toLowerCase() === category.toLowerCase()
+            ? { ...prev, category: "" }
+            : prev,
+        );
+        showAlert(`Deleted "${category}"`, "success");
+      },
+    );
   };
 
   const handleSubmit = async (e) => {
@@ -326,21 +475,35 @@ const AddTransaction = () => {
             <div className="category-list">
               {filteredCategories.length ? (
                 filteredCategories.map((cat) => (
-                  <button
-                    key={cat}
-                    type="button"
-                    className={`category-item ${
-                      form.category.toLowerCase() === cat.toLowerCase()
-                        ? "active"
-                        : ""
-                    }`}
-                    onClick={() => handleCategorySelect(cat)}
-                  >
-                    {cat}
-                  </button>
+                  <div className="category-item-row" key={cat}>
+                    <button
+                      type="button"
+                      className={`category-item ${
+                        form.category.toLowerCase() === cat.toLowerCase()
+                          ? "active"
+                          : ""
+                      }`}
+                      onClick={() => handleCategorySelect(cat)}
+                    >
+                      {cat}
+                    </button>
+                    {customCategorySet.has(cat.toLowerCase()) && (
+                      <button
+                        type="button"
+                        className="category-item-remove"
+                        aria-label={`Delete ${cat}`}
+                        title={`Delete ${cat}`}
+                        onClick={() => handleRemoveCategory(cat)}
+                      >
+                        <i className="bi bi-x-lg"></i>
+                      </button>
+                    )}
+                  </div>
                 ))
               ) : (
-                <p className="category-empty">No categories found</p>
+                <p className="category-empty">
+                  No categories found you can "add(+)"
+                </p>
               )}
               {canAddCategory && (
                 <button
@@ -358,7 +521,7 @@ const AddTransaction = () => {
                     Map "{normalizedCategorySearch}" to:
                   </p>
                   <div className="category-map-grid">
-                    {activeCategories.map((cat) => (
+                    {rankedCategories.map((cat) => (
                       <button
                         key={`map-${cat}`}
                         type="button"

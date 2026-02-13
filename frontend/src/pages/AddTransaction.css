@@ -231,6 +231,35 @@ textarea {
   font-weight: 600;
 }
 
+.category-item-row {
+  position: relative;
+}
+
+.category-item-row .category-item {
+  width: 100%;
+  padding-right: 34px;
+}
+
+.category-item-remove {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+
+.category-item-remove:hover {
+  background: rgba(16, 35, 42, 0.08);
+  color: #b43232;
+}
+
 .category-item.active {
   border-color: var(--accent);
   background: rgba(181, 136, 99, 0.12);

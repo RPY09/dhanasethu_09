@@ -150,3 +150,40 @@ exports.addCustomCategory = async (req, res) => {
     res.status(500).json({ message: "Failed to add custom category" });
   }
 };
+
+exports.deleteCustomCategory = async (req, res) => {
+  try {
+    const rawType = String(req.body?.type || "").toLowerCase();
+    const rawName = String(req.body?.name || "").trim();
+    const type = ["expense", "income", "invest"].includes(rawType)
+      ? rawType
+      : null;
+
+    if (!type || !rawName) {
+      return res
+        .status(400)
+        .json({ message: "Both type and name are required" });
+    }
+
+    const user = await User.findById(req.user._id).select("customCategories");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (!user.customCategories) {
+      user.customCategories = { expense: [], income: [], invest: [] };
+    }
+
+    const existing = user.customCategories[type] || [];
+    user.customCategories[type] = existing.filter(
+      (c) => String(c).toLowerCase() !== rawName.toLowerCase()
+    );
+
+    await user.save();
+    res.json({
+      type,
+      name: rawName,
+      categories: user.customCategories,
+    });
+  } catch (err) {
+    res.status(500).json({ message: "Failed to delete custom category" });
+  }
+};

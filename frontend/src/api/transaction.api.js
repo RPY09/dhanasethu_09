@@ -44,3 +44,8 @@ export const addCustomCategory = async (payload) => {
   const res = await api.post("/transactions/categories", payload);
   return res.data;
 };
+
+export const deleteCustomCategory = async (payload) => {
+  const res = await api.delete("/transactions/categories", { data: payload });
+  return res.data;
+};
