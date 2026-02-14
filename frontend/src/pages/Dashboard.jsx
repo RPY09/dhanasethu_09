@@ -61,7 +61,6 @@ const Dashboard = () => {
     hideAmounts ? 1 : 0,
   );
   const hideProgressRef = useRef(hideAmounts ? 1 : 0);
-  const [scrambleTick, setScrambleTick] = useState(0);
 
   // Read cached summary from localStorage at init (may be null)
   const [summary, setSummary] = useState(() => {
@@ -158,8 +157,8 @@ const Dashboard = () => {
     }
 
     const controls = animate(from, target, {
-      duration: 0.65,
-      ease: [0.22, 0.61, 0.36, 1],
+      duration: 0.8,
+      ease: [0.25, 0.1, 0.25, 1],
       onUpdate: (v) => {
         hideProgressRef.current = v;
         setHideProgress(v);
@@ -172,16 +171,6 @@ const Dashboard = () => {
 
     return () => controls.stop();
   }, [hideAmounts]);
-
-  useEffect(() => {
-    if (hideProgress <= 0.001 || hideProgress >= 0.999) return undefined;
-
-    const timer = setInterval(() => {
-      setScrambleTick((prev) => prev + 1);
-    }, 45);
-
-    return () => clearInterval(timer);
-  }, [hideProgress]);
 
   /* ------------------ Fetch Loans (cache first for loan summary) ------------------ */
   useEffect(() => {
@@ -382,32 +371,21 @@ const Dashboard = () => {
     const encryptedSet =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
     const amountSeed = Math.abs(Math.trunc(Number(val) || 0));
-    const encryptedChars = [...chars];
+    const stagger = 0.22;
     for (let i = 0; i < digitPositions.length; i += 1) {
-      const pos = digitPositions[i];
-      const seed = amountSeed + pos * 17 + scrambleTick * 13 + i * 7;
-      encryptedChars[pos] = encryptedSet[seed % encryptedSet.length];
-    }
-
-    if (hideProgress <= 0.5) {
-      const phase = hideProgress / 0.5;
-      const encryptedCount = Math.round(digitPositions.length * phase);
-      for (let i = 0; i < encryptedCount; i += 1) {
-        const pos = digitPositions[digitPositions.length - 1 - i];
-        chars[pos] = encryptedChars[pos];
-      }
-      return chars.join("");
-    }
-
-    const phase = (hideProgress - 0.5) / 0.5;
-    const maskedCount = Math.round(digitPositions.length * phase);
-    for (let i = 0; i < digitPositions.length; i += 1) {
-      const pos = digitPositions[i];
-      chars[pos] = encryptedChars[pos];
-    }
-    for (let i = 0; i < maskedCount; i += 1) {
       const pos = digitPositions[digitPositions.length - 1 - i];
-      chars[pos] = "*";
+      const maxIndex = Math.max(digitPositions.length - 1, 1);
+      const startOffset = (i / maxIndex) * stagger;
+      const localProgress = Math.min(
+        1,
+        Math.max(0, (hideProgress - startOffset) / (1 - stagger)),
+      );
+
+      if (localProgress <= 0) continue;
+
+      const seed = amountSeed + pos * 17 + i * 7;
+      const encryptedChar = encryptedSet[seed % encryptedSet.length];
+      chars[pos] = localProgress < 0.6 ? encryptedChar : "*";
     }
 
     return chars.join("");
