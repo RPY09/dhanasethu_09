@@ -57,6 +57,11 @@ const Dashboard = () => {
       return false;
     }
   });
+  const [hideProgress, setHideProgress] = useState(() =>
+    hideAmounts ? 1 : 0,
+  );
+  const hideProgressRef = useRef(hideAmounts ? 1 : 0);
+  const [scrambleTick, setScrambleTick] = useState(0);
 
   // Read cached summary from localStorage at init (may be null)
   const [summary, setSummary] = useState(() => {
@@ -141,6 +146,42 @@ const Dashboard = () => {
       // ignore storage failures
     }
   }, [hideAmounts]);
+
+  useEffect(() => {
+    const target = hideAmounts ? 1 : 0;
+    const from = hideProgressRef.current;
+
+    if (Math.abs(target - from) < 0.001) {
+      setHideProgress(target);
+      hideProgressRef.current = target;
+      return;
+    }
+
+    const controls = animate(from, target, {
+      duration: 0.65,
+      ease: [0.22, 0.61, 0.36, 1],
+      onUpdate: (v) => {
+        hideProgressRef.current = v;
+        setHideProgress(v);
+      },
+      onComplete: () => {
+        hideProgressRef.current = target;
+        setHideProgress(target);
+      },
+    });
+
+    return () => controls.stop();
+  }, [hideAmounts]);
+
+  useEffect(() => {
+    if (hideProgress <= 0.001 || hideProgress >= 0.999) return undefined;
+
+    const timer = setInterval(() => {
+      setScrambleTick((prev) => prev + 1);
+    }, 45);
+
+    return () => clearInterval(timer);
+  }, [hideProgress]);
 
   /* ------------------ Fetch Loans (cache first for loan summary) ------------------ */
   useEffect(() => {
@@ -324,8 +365,53 @@ const Dashboard = () => {
   /* ------------------ Recent transactions shown from live state (not cached summary) */
   const recentTransactions = transactions.slice(0, 5);
 
-  const displayAmount = (val) =>
-    hideAmounts ? `${symbol}****` : `${symbol} ${formatCurrency(val)}`;
+  const displayAmount = (val) => {
+    const visible = `${symbol} ${formatCurrency(val)}`;
+
+    if (hideProgress <= 0.001) return visible;
+    if (hideProgress >= 0.999) return `${symbol} ****`;
+
+    const chars = visible.split("");
+    const digitPositions = [];
+    for (let i = 0; i < chars.length; i += 1) {
+      if (/\d/.test(chars[i])) digitPositions.push(i);
+    }
+
+    if (!digitPositions.length) return visible;
+
+    const encryptedSet =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
+    const amountSeed = Math.abs(Math.trunc(Number(val) || 0));
+    const encryptedChars = [...chars];
+    for (let i = 0; i < digitPositions.length; i += 1) {
+      const pos = digitPositions[i];
+      const seed = amountSeed + pos * 17 + scrambleTick * 13 + i * 7;
+      encryptedChars[pos] = encryptedSet[seed % encryptedSet.length];
+    }
+
+    if (hideProgress <= 0.5) {
+      const phase = hideProgress / 0.5;
+      const encryptedCount = Math.round(digitPositions.length * phase);
+      for (let i = 0; i < encryptedCount; i += 1) {
+        const pos = digitPositions[digitPositions.length - 1 - i];
+        chars[pos] = encryptedChars[pos];
+      }
+      return chars.join("");
+    }
+
+    const phase = (hideProgress - 0.5) / 0.5;
+    const maskedCount = Math.round(digitPositions.length * phase);
+    for (let i = 0; i < digitPositions.length; i += 1) {
+      const pos = digitPositions[i];
+      chars[pos] = encryptedChars[pos];
+    }
+    for (let i = 0; i < maskedCount; i += 1) {
+      const pos = digitPositions[digitPositions.length - 1 - i];
+      chars[pos] = "*";
+    }
+
+    return chars.join("");
+  };
 
   /* ------------------ Render ------------------ */
   const now = new Date();
