@@ -49,7 +49,7 @@ const AddTransaction = () => {
     amount: "",
     type: "expense",
     category: "",
-    paymentMode: "cash",
+    paymentMode: "online",
     date: today,
     note: "",
   });

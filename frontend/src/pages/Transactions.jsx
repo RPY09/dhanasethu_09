@@ -204,6 +204,7 @@ const Transactions = () => {
           });
         } catch (err) {
           showAlert("Failed to delete", "error");
+          console.error(err);
         }
       },
     );

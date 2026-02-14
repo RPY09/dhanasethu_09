@@ -50,6 +50,13 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [isColdStart, setIsColdStart] = useState(false);
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false);
+  const [hideAmounts, setHideAmounts] = useState(() => {
+    try {
+      return localStorage.getItem("dashboard_hide_amounts") === "1";
+    } catch {
+      return false;
+    }
+  });
 
   // Read cached summary from localStorage at init (may be null)
   const [summary, setSummary] = useState(() => {
@@ -126,6 +133,14 @@ const Dashboard = () => {
       document.body.style.overflow = "";
     };
   }, [showCurrencyDropdown]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("dashboard_hide_amounts", hideAmounts ? "1" : "0");
+    } catch {
+      // ignore storage failures
+    }
+  }, [hideAmounts]);
 
   /* ------------------ Fetch Loans (cache first for loan summary) ------------------ */
   useEffect(() => {
@@ -309,6 +324,9 @@ const Dashboard = () => {
   /* ------------------ Recent transactions shown from live state (not cached summary) */
   const recentTransactions = transactions.slice(0, 5);
 
+  const displayAmount = (val) =>
+    hideAmounts ? `${symbol}****` : `${symbol} ${formatCurrency(val)}`;
+
   /* ------------------ Render ------------------ */
   const now = new Date();
   const year = now.getFullYear();
@@ -402,21 +420,34 @@ const Dashboard = () => {
           <motion.div className="tx-primary-card" whileHover={{ scale: 1.01 }}>
             <div className="tx-balance-label">
               <span>OVERALL BALANCE</span>
-              <div
-                className="currency-trigger"
-                onClick={() => setShowCurrencyDropdown(true)}
-              >
-                <img
-                  src={`https://flagcdn.com/w40/${displayCountry.toLowerCase()}.png`}
-                  alt={displayCountry}
-                  className="currency-flag-img"
-                />
-                <i className="bi bi-chevron-down flag-chevron"></i>
+              <div className="tx-card-actions">
+                <button
+                  type="button"
+                  className="visibility-trigger"
+                  onClick={() => setHideAmounts((prev) => !prev)}
+                  aria-label={hideAmounts ? "Show amounts" : "Hide amounts"}
+                  title={hideAmounts ? "Show amounts" : "Hide amounts"}
+                >
+                  <i
+                    className={`bi ${hideAmounts ? "bi-eye-slash" : "bi-eye"}`}
+                  ></i>
+                </button>
+                <div
+                  className="currency-trigger"
+                  onClick={() => setShowCurrencyDropdown(true)}
+                >
+                  <img
+                    src={`https://flagcdn.com/w40/${displayCountry.toLowerCase()}.png`}
+                    alt={displayCountry}
+                    className="currency-flag-img"
+                  />
+                  <i className="bi bi-chevron-down flag-chevron"></i>
+                </div>
               </div>
             </div>
 
             <div className="tx-balance-amount">
-              {symbol} {formatCurrency(animatedBalance)}
+              {displayAmount(animatedBalance)}
             </div>
 
             <div className="tx-monthly-grid">
@@ -427,9 +458,7 @@ const Dashboard = () => {
               ].map(([label, val, cls]) => (
                 <div key={label} className="tx-month-stat">
                   <span>{label}</span>
-                  <strong className={cls}>
-                    {symbol} {formatCurrency(val)}
-                  </strong>
+                  <strong className={cls}>{displayAmount(val)}</strong>
                 </div>
               ))}
             </div>
@@ -438,29 +467,23 @@ const Dashboard = () => {
           <div className="txs-controls" style={{ marginBottom: 24 }}>
             <div className="tx-mini-card">
               <span className="tx-meta">CASH BALANCE</span>
-              <span className="tx-category">
-                {symbol} {formatCurrency(animatedCash)}
-              </span>
+              <span className="tx-category">{displayAmount(animatedCash)}</span>
             </div>
             <div className="tx-mini-card">
               <span className="tx-meta">BANK BALANCE</span>
-              <span className="tx-category">
-                {symbol} {formatCurrency(animatedBank)}
-              </span>
+              <span className="tx-category">{displayAmount(animatedBank)}</span>
             </div>
           </div>
 
           <div className="txs-controls" style={{ marginBottom: 24 }}>
             <div className="tx-mini-card">
               <span className="tx-meta">LOANS GIVEN</span>
-              <span className="tx-category">
-                {symbol} {formatCurrency(animatedLent)}
-              </span>
+              <span className="tx-category">{displayAmount(animatedLent)}</span>
             </div>
             <div className="tx-mini-card">
               <span className="tx-meta">BORROWED</span>
               <span className="tx-category">
-                {symbol} {formatCurrency(animatedBorrowed)}
+                {displayAmount(animatedBorrowed)}
               </span>
             </div>
           </div>

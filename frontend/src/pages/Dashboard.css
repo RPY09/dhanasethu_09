@@ -169,6 +169,30 @@
   margin-bottom: 8px;
 }
 
+.tx-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.visibility-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.visibility-trigger:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
 .currency-trigger {
   display: flex;
   align-items: center;
