@@ -54,6 +54,14 @@ const userSchema = new mongoose.Schema(
         default: [],
       },
     },
+    customTypes: {
+      type: [String],
+      default: [],
+    },
+    customPaymentModes: {
+      type: [String],
+      default: [],
+    },
   },
 
   { timestamps: true }

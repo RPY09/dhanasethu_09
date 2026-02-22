@@ -49,3 +49,32 @@ export const deleteCustomCategory = async (payload) => {
   const res = await api.delete("/transactions/categories", { data: payload });
   return res.data;
 };
+
+export const getUserPreferences = async () => {
+  const res = await api.get("/transactions/preferences");
+  return res.data;
+};
+
+export const addCustomType = async (payload) => {
+  const res = await api.post("/transactions/preferences/types", payload);
+  return res.data;
+};
+
+export const deleteCustomType = async (payload) => {
+  const res = await api.delete("/transactions/preferences/types", {
+    data: payload,
+  });
+  return res.data;
+};
+
+export const addCustomPaymentMode = async (payload) => {
+  const res = await api.post("/transactions/preferences/payment-modes", payload);
+  return res.data;
+};
+
+export const deleteCustomPaymentMode = async (payload) => {
+  const res = await api.delete("/transactions/preferences/payment-modes", {
+    data: payload,
+  });
+  return res.data;
+};

@@ -242,6 +242,13 @@
   font-weight: 600;
 }
 
+.tx-highlight {
+  background: var(--nav-bg);
+  color: var(--primary);
+  padding: 0 2px;
+  border-radius: 4px;
+}
+
 @media (max-width: 768px) {
   .tx-info {
     width: 150px;

@@ -21,6 +21,13 @@ const parseAmount = (v) => {
   const n = Number(String(v).replace(/[^0-9.-]/g, ""));
   return Number.isFinite(n) ? n : 0;
 };
+const escapeRegExp = (value = "") =>
+  String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const paymentModeLabel = (value = "") => {
+  const mode = String(value).trim().toLowerCase();
+  if (mode === "online") return "upi";
+  return mode;
+};
 
 const normalizeResponse = (res) => {
   if (!res) return [];
@@ -30,6 +37,12 @@ const normalizeResponse = (res) => {
     return res.data.transactions;
   if (res.data && Array.isArray(res.data.data)) return res.data.data;
   return [];
+};
+const getPaginationFromResponse = (res) => {
+  if (!res || Array.isArray(res)) return null;
+  if (res.pagination) return res.pagination;
+  if (res.data && res.data.pagination) return res.data.pagination;
+  return null;
 };
 const isSettlementTransaction = (t) => {
   if (!t.loanId) return false;
@@ -46,6 +59,8 @@ const isSettlementTransaction = (t) => {
 
 const Transactions = () => {
   const [transactions, setTransactions] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
@@ -72,6 +87,13 @@ const Transactions = () => {
   const navigate = useNavigate();
   const isSelectionMode = selectedIds.length > 0;
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm.trim());
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
   // Reset and reload when filters/sort change
   useEffect(() => {
     setTransactions([]);
@@ -79,12 +101,17 @@ const Transactions = () => {
     setHasMore(true);
     loadPage(1, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedYear, selectedMonth, sortBy, selectedType]);
+  }, [selectedYear, selectedMonth, sortBy, selectedType, debouncedSearch]);
 
   useEffect(() => {
     fetchAvailableYears();
     // also re-load when other pages signal changes (e.g., add/delete)
-    const onChanged = () => loadPage(1, true);
+    const onChanged = () => {
+      setTransactions([]);
+      setPage(1);
+      setHasMore(true);
+      loadPage(1, true);
+    };
     window.addEventListener("transactions:changed", onChanged);
     return () => window.removeEventListener("transactions:changed", onChanged);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -92,11 +119,11 @@ const Transactions = () => {
 
   useEffect(() => {
     setSelectedIds([]);
-  }, [selectedYear, selectedMonth, sortBy, selectedType]);
+  }, [selectedYear, selectedMonth, sortBy, selectedType, debouncedSearch]);
 
   async function fetchAvailableYears() {
     try {
-      const res = await getTransactions({ page: 1, limit: 500 });
+      const res = await getTransactions();
       const data = normalizeResponse(res);
       if (Array.isArray(data)) {
         const years = [
@@ -132,6 +159,8 @@ const Transactions = () => {
         month: selectedMonth + 1,
         year: selectedYear,
         sort: sortBy,
+        type: selectedType,
+        search: debouncedSearch || undefined,
       };
 
       let res;
@@ -142,41 +171,18 @@ const Transactions = () => {
         res = await getTransactions();
       }
 
-      const serverData = normalizeResponse(res);
-
-      const filteredByDate = serverData.filter((t) => {
-        const d = new Date(t.date);
-        return (
-          d.getFullYear() === selectedYear && d.getMonth() === selectedMonth
-        );
-      });
-
-      const filteredByType =
-        selectedType === "all"
-          ? filteredByDate
-          : filteredByDate.filter((t) => {
-              if (selectedType === "loan") return t.paymentMode === "loan";
-              if (selectedType === "borrowed")
-                return t.paymentMode === "borrow";
-              return t.type === selectedType; // income / expense
-            });
-
-      // sort & normalize
-      const processedData = filteredByType.slice().sort((a, b) => {
-        if (sortBy === "newest") return parseDate(b.date) - parseDate(a.date);
-        if (sortBy === "oldest") return parseDate(a.date) - parseDate(b.date);
-        if (sortBy === "amount-desc")
-          return parseAmount(b.amount) - parseAmount(a.amount);
-        if (sortBy === "amount-asc")
-          return parseAmount(a.amount) - parseAmount(b.amount);
-        return 0;
-      });
+      const processedData = normalizeResponse(res);
+      const pagination = getPaginationFromResponse(res);
 
       setTransactions((prev) =>
         isReset ? processedData : [...prev, ...processedData],
       );
 
-      setHasMore(processedData.length === DEFAULT_LIMIT);
+      if (pagination && typeof pagination.hasMore === "boolean") {
+        setHasMore(pagination.hasMore);
+      } else {
+        setHasMore(processedData.length === DEFAULT_LIMIT);
+      }
 
       setPage(pageNum);
     } catch (err) {
@@ -248,19 +254,38 @@ const Transactions = () => {
     );
   };
 
-  const sortedTransactions = [...transactions].sort((a, b) => {
-    if (sortBy === "newest") return parseDate(b.date) - parseDate(a.date);
-    if (sortBy === "oldest") return parseDate(a.date) - parseDate(b.date);
-    if (sortBy === "amount-desc")
-      return parseAmount(b.amount) - parseAmount(a.amount);
-    if (sortBy === "amount-asc")
-      return parseAmount(a.amount) - parseAmount(b.amount);
-    return 0;
-  });
+  const sortedTransactions = useMemo(() => {
+    return [...transactions].sort((a, b) => {
+      if (sortBy === "newest") return parseDate(b.date) - parseDate(a.date);
+      if (sortBy === "oldest") return parseDate(a.date) - parseDate(b.date);
+      if (sortBy === "amount-desc")
+        return parseAmount(b.amount) - parseAmount(a.amount);
+      if (sortBy === "amount-asc")
+        return parseAmount(a.amount) - parseAmount(b.amount);
+      return 0;
+    });
+  }, [transactions, sortBy]);
   const selectedTransactions = useMemo(
     () => sortedTransactions.filter((t) => selectedIds.includes(t._id)),
     [sortedTransactions, selectedIds],
   );
+  const renderHighlightedText = (value = "") => {
+    const text = String(value);
+    const query = debouncedSearch.trim();
+    if (!query) return text;
+
+    const regex = new RegExp(`(${escapeRegExp(query)})`, "gi");
+    const parts = text.split(regex);
+    return parts.map((part, index) =>
+      part.toLowerCase() === query.toLowerCase() ? (
+        <mark key={`${part}-${index}`} className="tx-highlight">
+          {part}
+        </mark>
+      ) : (
+        part
+      ),
+    );
+  };
 
   const handleCalculateSelected = () => {
     const totals = selectedTransactions.reduce(
@@ -340,7 +365,7 @@ const Transactions = () => {
           marginBottom: 6,
         }}
       >
-        No transactions yet
+        {debouncedSearch ? "No matching transactions" : "No transactions yet"}
       </h3>
 
       <p
@@ -349,7 +374,9 @@ const Transactions = () => {
           marginBottom: 20,
         }}
       >
-        Start by adding your first income or expense.
+        {debouncedSearch
+          ? "Try a different note or category keyword."
+          : "Start by adding your first income or expense."}
       </p>
 
       <button
@@ -406,6 +433,15 @@ const Transactions = () => {
           <i className={`bi ${showControls ? "bi-x" : "bi-sliders"}`}></i>
         </button>
       </header>
+      <div className="search-container">
+        <i className="bi bi-search"></i>
+        <input
+          type="text"
+          placeholder="Search category or notes..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
       {isSelectionMode && (
         <div className="tx-bulk-bar">
           <span>{selectedIds.length} selected</span>
@@ -489,13 +525,7 @@ const Transactions = () => {
                 <div className="tx-select-group">
                   <select
                     value={selectedType}
-                    onChange={(e) => {
-                      setSelectedType(e.target.value);
-                      setTransactions([]);
-                      setPage(1);
-                      setHasMore(true);
-                      loadPage(1, true);
-                    }}
+                    onChange={(e) => setSelectedType(e.target.value)}
                   >
                     <option value="all">All Transactions</option>
                     {types.map((t) => (
@@ -522,7 +552,7 @@ const Transactions = () => {
       </AnimatePresence>
 
       <div className="tx-list" ref={containerRef}>
-        {loading ? (
+        {loading && sortedTransactions.length === 0 ? (
           [...Array(6)].map((_, i) => <SkeletonTransaction key={i} />)
         ) : sortedTransactions.length === 0 ? (
           <EmptyState />
@@ -532,6 +562,9 @@ const Transactions = () => {
             enableArrowNavigation={false}
             showGradients
             displayScrollbar
+            onReachEnd={() => {
+              if (!loading && hasMore) loadPage(page + 1);
+            }}
             renderItem={(t) => (
               <motion.div
                 layout
@@ -554,9 +587,11 @@ const Transactions = () => {
                   </div>
 
                   <div className="tx-info">
-                    <span className="tx-category">{t.category}</span>
+                    <span className="tx-category">
+                      {renderHighlightedText(t.category)}
+                    </span>
                     <span className="tx-meta">
-                      {t.paymentMode} • {t.type}
+                      {paymentModeLabel(t.paymentMode)} • {t.type}
                     </span>
 
                     {(t.note || t.notes || t.description) && (
@@ -564,7 +599,9 @@ const Transactions = () => {
                         className="note"
                         style={{ marginTop: 8, fontSize: 13 }}
                       >
-                        {t.note || t.notes || t.description}
+                        {renderHighlightedText(
+                          t.note || t.notes || t.description,
+                        )}
                       </div>
                     )}
                   </div>
@@ -610,6 +647,9 @@ const Transactions = () => {
               </motion.div>
             )}
           />
+        )}
+        {loading && sortedTransactions.length > 0 && (
+          <div className="tx-loader">Loading more...</div>
         )}
         {/* {loading && <div className="tx-loader">Updating list...</div>} */}
       </div>

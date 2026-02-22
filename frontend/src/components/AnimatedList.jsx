@@ -31,6 +31,7 @@ const AnimatedItem = ({
 const AnimatedList = ({
   items = [],
   onItemSelect,
+  onReachEnd,
   renderItem,
   showGradients = true,
   enableArrowNavigation = true,
@@ -44,6 +45,7 @@ const AnimatedList = ({
   const [keyboardNav, setKeyboardNav] = useState(false);
   const [topGradientOpacity, setTopGradientOpacity] = useState(0);
   const [bottomGradientOpacity, setBottomGradientOpacity] = useState(1);
+  const endTriggeredRef = useRef(false);
 
   const handleItemMouseEnter = useCallback((index) => {
     setSelectedIndex(index);
@@ -64,7 +66,16 @@ const AnimatedList = ({
     setBottomGradientOpacity(
       scrollHeight <= clientHeight ? 0 : Math.min(bottomDistance / 50, 1),
     );
-  }, []);
+
+    if (bottomDistance <= 120) {
+      if (!endTriggeredRef.current) {
+        endTriggeredRef.current = true;
+        onReachEnd?.();
+      }
+    } else {
+      endTriggeredRef.current = false;
+    }
+  }, [onReachEnd]);
 
   useEffect(() => {
     if (!enableArrowNavigation) return;

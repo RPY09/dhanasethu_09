@@ -16,22 +16,26 @@ const parseNumber = (v) => {
 const formatCurrency = (v) =>
   parseNumber(v).toLocaleString("en-IN", { maximumFractionDigits: 0 });
 
-const detectPaymentMode = (t = {}) => {
-  const raw = t.paymentMethod || t.method || t.paymentMode || "";
+const normalizePaymentMode = (value = "") => {
+  const mode = String(value).trim().toLowerCase();
+  if (!mode) return "unknown";
 
-  const val = String(raw).toLowerCase();
+  if (mode === "loan" || mode === "borrow") return mode;
+  if (mode === "cash") return "cash";
 
-  if (val.includes("cash")) return "cash";
-  if (
-    val.includes("bank") ||
-    val.includes("online") ||
-    val.includes("upi") ||
-    val.includes("card")
-  )
+  if (mode === "bank" || mode === "netbanking" || mode === "net banking") {
     return "bank";
+  }
+  if (mode === "online" || mode === "upi") return "upi";
 
-  return "unknown";
+  return mode;
 };
+const paymentModeLabel = (value = "") =>
+  normalizePaymentMode(value)
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
 
 /* ------------------ Component ------------------ */
 const Dashboard = () => {
@@ -57,9 +61,7 @@ const Dashboard = () => {
       return false;
     }
   });
-  const [hideProgress, setHideProgress] = useState(() =>
-    hideAmounts ? 1 : 0,
-  );
+  const [hideProgress, setHideProgress] = useState(() => (hideAmounts ? 1 : 0));
   const hideProgressRef = useRef(hideAmounts ? 1 : 0);
 
   // Read cached summary from localStorage at init (may be null)
@@ -210,8 +212,7 @@ const Dashboard = () => {
     let monthlyIncome = 0;
     let monthlyExpense = 0;
     let monthlyInvest = 0;
-    let cash = 0;
-    let bank = 0;
+    const paymentBalances = {};
 
     (Array.isArray(txs) ? txs : []).forEach((t) => {
       const d = new Date(t.date);
@@ -242,16 +243,22 @@ const Dashboard = () => {
         signed = -amt;
       }
 
-      const pm = detectPaymentMode(t);
-
-      if (pm === "cash") cash += signed;
-      else if (pm === "bank") bank += signed;
+      const pm = normalizePaymentMode(
+        t.paymentMethod || t.method || t.paymentMode,
+      );
+      if (pm === "loan" || pm === "borrow" || pm === "unknown") return;
+      paymentBalances[pm] = (paymentBalances[pm] || 0) + signed;
     });
+    const totalBalance = Object.values(paymentBalances).reduce(
+      (sum, value) => sum + Number(value || 0),
+      0,
+    );
 
     return {
-      balance: cash + bank,
-      cashBalance: cash,
-      bankBalance: bank,
+      balance: totalBalance,
+      cashBalance: paymentBalances.cash || 0,
+      bankBalance: paymentBalances.bank || 0,
+      paymentBalances,
       monthlyIncome,
       monthlyExpense,
       monthlyInvest,
@@ -323,6 +330,7 @@ const Dashboard = () => {
   const effectiveInvest = summary?.monthlyInvest ?? 0;
   const effectiveCash = summary?.cashBalance ?? 0;
   const effectiveBank = summary?.bankBalance ?? 0;
+  const effectivePaymentBalances = summary?.paymentBalances || {};
   const effectiveLent = summary?.loansGiven ?? 0;
   const effectiveBorrowed = summary?.borrowed ?? 0;
 
@@ -346,6 +354,27 @@ const Dashboard = () => {
   const animatedBorrowed = useAnimatedNumber(
     convert(Number(effectiveBorrowed) || 0),
   );
+  const usedPaymentModes = useMemo(() => {
+    const modes = new Set();
+    (transactions || []).forEach((t) => {
+      const mode = normalizePaymentMode(
+        t?.paymentMethod || t?.method || t?.paymentMode,
+      );
+      if (mode === "loan" || mode === "borrow" || mode === "unknown") return;
+      modes.add(mode);
+    });
+    return Array.from(modes);
+  }, [transactions]);
+  const paymentModesToShow = useMemo(() => {
+    const ordered = ["cash", "bank"];
+    const extra = usedPaymentModes.filter(
+      (mode) => mode !== "cash" && mode !== "bank",
+    );
+    return [
+      ...ordered.filter((mode) => usedPaymentModes.includes(mode)),
+      ...extra,
+    ];
+  }, [usedPaymentModes]);
 
   /* ------------------ Skeleton decision ------------------ */
 
@@ -528,16 +557,23 @@ const Dashboard = () => {
             </div>
           </motion.div>
 
-          <div className="txs-controls" style={{ marginBottom: 24 }}>
-            <div className="tx-mini-card">
-              <span className="tx-meta">CASH BALANCE</span>
-              <span className="tx-category">{displayAmount(animatedCash)}</span>
+          {paymentModesToShow.length > 0 && (
+            <div className="txs-controls" style={{ marginBottom: 24 }}>
+              {paymentModesToShow.map((mode) => {
+                const value = Number(effectivePaymentBalances?.[mode] || 0);
+                return (
+                  <div className="tx-mini-card" key={mode}>
+                    <span className="tx-meta">
+                      {paymentModeLabel(mode)} BALANCE
+                    </span>
+                    <span className="tx-category">
+                      {displayAmount(convert(value))}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-            <div className="tx-mini-card">
-              <span className="tx-meta">BANK BALANCE</span>
-              <span className="tx-category">{displayAmount(animatedBank)}</span>
-            </div>
-          </div>
+          )}
 
           <div className="txs-controls" style={{ marginBottom: 24 }}>
             <div className="tx-mini-card">

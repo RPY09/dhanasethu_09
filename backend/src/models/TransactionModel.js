@@ -7,21 +7,13 @@ const transactionSchema = new mongoose.Schema(
     amount: { type: String, required: true },
     category: { type: String, required: true },
     note: { type: String },
-    type: {
-      type: String,
-      enum: ["income", "expense", "invest", "transfer"],
-      required: true,
-    },
+    type: { type: String, required: true },
 
     // semantic role of the transaction (loan / borrow / etc)
     paymentMode: { type: String, required: true },
 
     // NEW: medium used (cash | bank | online | upi | card ...)
-    paymentMethod: {
-      type: String,
-      enum: ["cash", "bank", "online", "upi", "card"],
-      // default: "cash",
-    },
+    paymentMethod: { type: String },
 
     isPrincipal: {
       type: Boolean,
