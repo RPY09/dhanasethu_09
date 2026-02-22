@@ -27,9 +27,24 @@ const COLORS = [
   "#D3C3B9",
   "#1B1B1B",
 ];
+const CATEGORY_BREAKDOWN_TYPES = ["expense", "income"];
+const PAYMENT_METHOD_TYPES = ["income", "expense"];
 
 const formatCurrency = (n) =>
   Number(n || 0).toLocaleString("en-IE", { maximumFractionDigits: 0 });
+const normalizeType = (value = "") => String(value).trim().toLowerCase();
+const normalizePaymentMode = (value = "") => {
+  const mode = String(value).trim().toLowerCase();
+  if (!mode) return "unknown";
+  if (mode === "online" || mode === "upi") return "upi";
+  return mode;
+};
+const formatLabel = (value = "") =>
+  String(value)
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (m) => m.toUpperCase());
 
 const getWeeksInMonth = (year, month) => {
   const weeks = [];
@@ -176,6 +191,48 @@ const Analytics = () => {
       return true;
     });
   }, [transactions, range, selectedMonth, selectedYear]);
+  const availableTypeFilters = useMemo(() => {
+    const types = new Set();
+    filteredTransactions.forEach((t) => {
+      const type = normalizeType(t.type);
+      if (!type || type === "transfer") return;
+      types.add(type);
+    });
+    return Array.from(types).sort((a, b) => a.localeCompare(b));
+  }, [filteredTransactions]);
+
+  const investPaymentModes = useMemo(() => {
+    const modes = new Set();
+    filteredTransactions
+      .filter((t) => isInvestment(t))
+      .forEach((t) => {
+        const mode = normalizePaymentMode(t.paymentMode);
+        if (!mode || mode === "unknown") return;
+        modes.add(mode);
+      });
+    return Array.from(modes).sort((a, b) => a.localeCompare(b));
+  }, [filteredTransactions]);
+
+  useEffect(() => {
+    if (!PAYMENT_METHOD_TYPES.includes(paymentFilter)) {
+      setPaymentFilter("income");
+    }
+  }, [paymentFilter]);
+
+  useEffect(() => {
+    if (!CATEGORY_BREAKDOWN_TYPES.includes(categoryFilter)) {
+      setCategoryFilter("expense");
+    }
+  }, [categoryFilter]);
+
+  useEffect(() => {
+    if (
+      investPaymentFilter !== "all" &&
+      !investPaymentModes.includes(investPaymentFilter)
+    ) {
+      setInvestPaymentFilter("all");
+    }
+  }, [investPaymentModes, investPaymentFilter]);
 
   const totalIncome = useMemo(
     () =>
@@ -255,29 +312,25 @@ const Analytics = () => {
 
   // Payment type (Cash vs Online) — only expenses
   const paymentTypeData = useMemo(() => {
-    let cash = 0;
-    let online = 0;
+    const byMode = {};
 
     filteredTransactions
       .filter((t) => {
-        if (paymentFilter === "all") return t.type !== "invest";
-        return t.type === paymentFilter;
+        const type = normalizeType(t.type);
+        if (!PAYMENT_METHOD_TYPES.includes(type)) return false;
+        return type === paymentFilter;
       })
       .forEach((t) => {
-        const mode = (t.paymentMode || "").toLowerCase();
-        if (mode === "cash") cash += Number(t.amount || 0);
-        else online += Number(t.amount || 0);
+        const mode = normalizePaymentMode(t.paymentMode);
+        if (!mode || mode === "unknown") return;
+        byMode[mode] = (byMode[mode] || 0) + Number(t.amount || 0);
       });
 
-    return [
-      { name: "Cash", value: cash },
-      { name: "Online", value: online },
-    ];
+    return Object.keys(byMode).map((mode) => ({
+      name: formatLabel(mode),
+      value: byMode[mode],
+    }));
   }, [filteredTransactions, paymentFilter]);
-
-  const cashTotal = paymentTypeData.find((d) => d.name === "Cash")?.value || 0;
-  const onlineTotal =
-    paymentTypeData.find((d) => d.name === "Online")?.value || 0;
 
   // Expense by category (for second pie)
   const categoryChartData = useMemo(() => {
@@ -285,10 +338,10 @@ const Analytics = () => {
     filteredTransactions
       .filter((t) => {
         // Filter by the selected type (income or expense)
-        const typeMatch = t.type === categoryFilter;
+        const typeMatch = normalizeType(t.type) === categoryFilter;
         // Exclude internal loan/borrow transfers from general breakdown
         const notLoan = !["loan", "borrow"].includes(
-          (t.paymentMode || "").toLowerCase(),
+          normalizePaymentMode(t.paymentMode),
         );
         return typeMatch && notLoan;
       })
@@ -317,7 +370,7 @@ const Analytics = () => {
         // Filter by payment mode if not set to "all"
         const matchesMode =
           investPaymentFilter === "all" ||
-          (t.paymentMode || "").toLowerCase() === investPaymentFilter;
+          normalizePaymentMode(t.paymentMode) === investPaymentFilter;
 
         return isInvestType && matchesMode;
       })
@@ -787,9 +840,11 @@ const Analytics = () => {
                   value={paymentFilter}
                   onChange={(e) => setPaymentFilter(e.target.value)}
                 >
-                  {/* <option value="all">All Transactions</option> */}
-                  <option value="income">Income Only</option>
-                  <option value="expense">Expense Only</option>
+                  {PAYMENT_METHOD_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {formatLabel(type)} Only
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="chart-wrapper">
@@ -833,8 +888,11 @@ const Analytics = () => {
                   value={categoryFilter}
                   onChange={(e) => setCategoryFilter(e.target.value)}
                 >
-                  <option value="expense">Expenses Only</option>
-                  <option value="income">Income Only</option>
+                  {CATEGORY_BREAKDOWN_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {formatLabel(type)} Only
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -880,8 +938,11 @@ const Analytics = () => {
                   onChange={(e) => setInvestPaymentFilter(e.target.value)}
                 >
                   <option value="all">All Modes</option>
-                  <option value="online">Online Only</option>
-                  <option value="cash">Cash Only</option>
+                  {investPaymentModes.map((mode) => (
+                    <option key={mode} value={mode}>
+                      {formatLabel(mode)} Only
+                    </option>
+                  ))}
                 </select>
               </div>
 

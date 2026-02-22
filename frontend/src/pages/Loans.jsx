@@ -1,11 +1,60 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { addLoan } from "../api/loan.api";
+import { addLoan, getLoans } from "../api/loan.api";
 import { useNavigate } from "react-router-dom";
 import { useAlert } from "../components/Alert/AlertContext";
 import { useCurrency } from "../context/CurrencyContext";
+import {
+  addCustomPaymentMode,
+  deleteCustomPaymentMode,
+  getUserPreferences,
+} from "../api/transaction.api";
 
 import "./Loans.css";
+
+const DEFAULT_PAYMENT_MODES = ["cash", "upi"];
+const ROLE_OPTIONS = [
+  { value: "lent", label: "Lends" },
+  { value: "borrowed", label: "Borrows" },
+];
+const INTEREST_TYPE_OPTIONS = [
+  { value: "simple", label: "Simple" },
+  { value: "monthly", label: "Compound" },
+];
+const PAYMENT_CUSTOM_KEY = "payment_custom_v1";
+const PAYMENT_OVERLAY_DEBOUNCE_MS = 550;
+const OVERLAY_SWITCH_DELAY = 120;
+const normalizeValue = (value = "") =>
+  String(value)
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+const canonicalPaymentMode = (value = "") => {
+  const normalized = normalizeValue(value);
+  if (normalized === "online" || normalized === "upi") return "upi";
+  return normalized;
+};
+const toTitleCase = (value = "") =>
+  String(value)
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (m) => m.toUpperCase());
+const getMostUsedValue = (items = [], fieldName, fallback) => {
+  const counts = {};
+  (items || []).forEach((item) => {
+    const value = normalizeValue(item?.[fieldName]);
+    if (!value) return;
+    counts[value] = (counts[value] || 0) + 1;
+  });
+
+  const sorted = Object.entries(counts).sort((a, b) => {
+    if (b[1] !== a[1]) return b[1] - a[1];
+    return a[0].localeCompare(b[0]);
+  });
+  return sorted.length ? sorted[0][0] : fallback;
+};
 
 const Loans = () => {
   const navigate = useNavigate();
@@ -13,7 +62,14 @@ const Loans = () => {
   const [quickDuration, setQuickDuration] = useState(null);
   const [loading, setLoading] = useState(false);
   const { baseSymbol, baseCurrency, baseCountry } = useCurrency();
-  const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [showPaymentOverlay, setShowPaymentOverlay] = useState(false);
+  const [showRoleOverlay, setShowRoleOverlay] = useState(false);
+  const [showInterestTypeOverlay, setShowInterestTypeOverlay] = useState(false);
+  const [paymentSearch, setPaymentSearch] = useState("");
+  const [customPaymentModes, setCustomPaymentModes] = useState([]);
+  const promptedForPaymentRef = useRef(false);
+  const paymentOverlayTimerRef = useRef(null);
 
   const [form, setForm] = useState({
     person: "",
@@ -27,6 +83,38 @@ const Loans = () => {
     note: "",
   });
   const LOAN_QUEUE_KEY = "unsynced_loans";
+  const paymentOptions = useMemo(
+    () =>
+      Array.from(
+        new Set([
+          ...DEFAULT_PAYMENT_MODES,
+          canonicalPaymentMode(paymentMethod),
+          ...(customPaymentModes || []).map((item) =>
+            canonicalPaymentMode(item),
+          ),
+        ]),
+      ).filter(Boolean),
+    [customPaymentModes, paymentMethod],
+  );
+  const normalizedPaymentSearch = canonicalPaymentMode(paymentSearch);
+  const filteredPayments = useMemo(() => {
+    if (!normalizedPaymentSearch) return paymentOptions;
+    return paymentOptions.filter((item) =>
+      canonicalPaymentMode(item).includes(normalizedPaymentSearch),
+    );
+  }, [paymentOptions, normalizedPaymentSearch]);
+  const canAddPayment =
+    normalizedPaymentSearch.length > 0 &&
+    !paymentOptions.some(
+      (item) => canonicalPaymentMode(item) === normalizedPaymentSearch,
+    );
+  const customPaymentSet = useMemo(
+    () =>
+      new Set(
+        (customPaymentModes || []).map((item) => canonicalPaymentMode(item)),
+      ),
+    [customPaymentModes],
+  );
 
   const getLoanQueue = () =>
     JSON.parse(localStorage.getItem(LOAN_QUEUE_KEY)) || [];
@@ -34,9 +122,182 @@ const Loans = () => {
   const saveLoanQueue = (q) =>
     localStorage.setItem(LOAN_QUEUE_KEY, JSON.stringify(q));
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+  const handleRoleSelect = (role) => {
+    const nextRole = normalizeValue(role);
+    setForm((prev) => ({ ...prev, role: nextRole }));
+    setShowRoleOverlay(false);
+    setTimeout(() => {
+      setShowInterestTypeOverlay(true);
+    }, OVERLAY_SWITCH_DELAY);
   };
+
+  const handleInterestTypeSelect = (interestType) => {
+    const nextInterestType = normalizeValue(interestType);
+    setForm((prev) => ({ ...prev, interestType: nextInterestType }));
+    setShowInterestTypeOverlay(false);
+  };
+
+  const handlePaymentSelect = (mode) => {
+    setPaymentMethod(canonicalPaymentMode(mode));
+    setShowPaymentOverlay(false);
+    setPaymentSearch("");
+  };
+
+  const handleAddPayment = async () => {
+    if (!canAddPayment) return;
+    const name = canonicalPaymentMode(normalizedPaymentSearch);
+    try {
+      const res = await addCustomPaymentMode({ name });
+      const next = Array.isArray(res?.paymentModes)
+        ? res.paymentModes
+            .map((item) => canonicalPaymentMode(item))
+            .filter(Boolean)
+        : Array.from(new Set([...(customPaymentModes || []), name]));
+      setCustomPaymentModes(next);
+      localStorage.setItem(PAYMENT_CUSTOM_KEY, JSON.stringify(next));
+    } catch {
+      const next = Array.from(new Set([...(customPaymentModes || []), name]));
+      setCustomPaymentModes(next);
+      localStorage.setItem(PAYMENT_CUSTOM_KEY, JSON.stringify(next));
+    }
+    handlePaymentSelect(name);
+  };
+
+  const handleRemovePayment = async (mode) => {
+    const key = canonicalPaymentMode(mode);
+    if (!customPaymentSet.has(key)) return;
+
+    try {
+      const res = await deleteCustomPaymentMode({ name: key });
+      const next = Array.isArray(res?.paymentModes)
+        ? res.paymentModes
+            .map((item) => canonicalPaymentMode(item))
+            .filter(Boolean)
+        : (customPaymentModes || []).filter(
+            (item) => canonicalPaymentMode(item) !== key,
+          );
+      setCustomPaymentModes(next);
+      localStorage.setItem(PAYMENT_CUSTOM_KEY, JSON.stringify(next));
+    } catch {
+      const next = (customPaymentModes || []).filter(
+        (item) => canonicalPaymentMode(item) !== key,
+      );
+      setCustomPaymentModes(next);
+      localStorage.setItem(PAYMENT_CUSTOM_KEY, JSON.stringify(next));
+    }
+
+    if (canonicalPaymentMode(paymentMethod) === key) setPaymentMethod("");
+    if (Number(form.amount) > 0) promptedForPaymentRef.current = false;
+  };
+
+  useEffect(() => {
+    const loadLocal = () => {
+      try {
+        const savedPayments = JSON.parse(
+          localStorage.getItem(PAYMENT_CUSTOM_KEY) || "[]",
+        );
+        setCustomPaymentModes(
+          Array.isArray(savedPayments)
+            ? savedPayments
+                .map((item) => canonicalPaymentMode(item))
+                .filter(Boolean)
+            : [],
+        );
+      } catch {
+        setCustomPaymentModes([]);
+      }
+    };
+
+    const loadRemote = async () => {
+      try {
+        const prefs = await getUserPreferences();
+        const paymentModes = Array.isArray(prefs?.paymentModes)
+          ? prefs.paymentModes
+              .map((item) => canonicalPaymentMode(item))
+              .filter(Boolean)
+          : [];
+        setCustomPaymentModes(paymentModes);
+        localStorage.setItem(PAYMENT_CUSTOM_KEY, JSON.stringify(paymentModes));
+      } catch {
+        loadLocal();
+      }
+    };
+
+    loadRemote();
+  }, []);
+
+  useEffect(() => {
+    const applyMostUsedDefaults = async () => {
+      try {
+        const loans = await getLoans();
+        const list = Array.isArray(loans) ? loans : [];
+        const mostUsedRole = getMostUsedValue(list, "role", "lent");
+        const mostUsedInterestType = getMostUsedValue(
+          list,
+          "interestType",
+          "simple",
+        );
+        setForm((prev) => ({
+          ...prev,
+          role: mostUsedRole || prev.role,
+          interestType: mostUsedInterestType || prev.interestType,
+        }));
+      } catch {
+        // keep form defaults
+      }
+    };
+
+    applyMostUsedDefaults();
+  }, []);
+
+  useEffect(() => {
+    if (showPaymentOverlay || showRoleOverlay || showInterestTypeOverlay)
+      document.body.style.overflow = "hidden";
+    else document.body.style.overflow = "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [showPaymentOverlay, showRoleOverlay, showInterestTypeOverlay]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm({ ...form, [name]: value });
+
+    if (name === "amount") {
+      if (paymentOverlayTimerRef.current) {
+        clearTimeout(paymentOverlayTimerRef.current);
+        paymentOverlayTimerRef.current = null;
+      }
+
+      const hasAmount = Number(value) > 0;
+      if (!hasAmount) {
+        promptedForPaymentRef.current = false;
+        return;
+      }
+
+      if (
+        !paymentMethod &&
+        !showPaymentOverlay &&
+        !showRoleOverlay &&
+        !showInterestTypeOverlay &&
+        !promptedForPaymentRef.current
+      ) {
+        paymentOverlayTimerRef.current = setTimeout(() => {
+          promptedForPaymentRef.current = true;
+          setShowPaymentOverlay(true);
+          paymentOverlayTimerRef.current = null;
+        }, PAYMENT_OVERLAY_DEBOUNCE_MS);
+      }
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (paymentOverlayTimerRef.current) {
+        clearTimeout(paymentOverlayTimerRef.current);
+      }
+    };
+  }, []);
 
   const addDurationToDate = (start, type) => {
     const d = new Date(start);
@@ -104,12 +365,16 @@ const Loans = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.contact) return showAlert("Phone number is required", "warning");
+    if (!paymentMethod) {
+      setShowPaymentOverlay(true);
+      return showAlert("Select payment mode", "warning");
+    }
 
     setLoading(true);
 
     const payload = {
       ...form,
-      paymentMethod,
+      paymentMethod: canonicalPaymentMode(paymentMethod),
       amount: String(form.amount),
       interestRate: String(form.interestRate),
       interestAmount: String(interestAmount),
@@ -185,25 +450,11 @@ const Loans = () => {
             <div className="input-group">
               <div className="date-header">
                 <label>Principal</label>
-                <div className="duration-toggle">
-                  <div
-                    className={`toggle-slider ${paymentMethod === "bank" ? "slide-right" : "slide-left"}`}
-                  />
-                  <button
-                    type="button"
-                    className={`toggle-btn ${paymentMethod === "cash" ? "active" : ""}`}
-                    onClick={() => setPaymentMethod("cash")}
-                  >
-                    CASH
-                  </button>
-                  <button
-                    type="button"
-                    className={`toggle-btn ${paymentMethod === "bank" ? "active" : ""}`}
-                    onClick={() => setPaymentMethod("bank")}
-                  >
-                    BANK
-                  </button>
-                </div>
+                {paymentMethod ? (
+                  <span className="loan-mode-pill">
+                    {toTitleCase(paymentMethod)}
+                  </span>
+                ) : null}
               </div>
 
               <input
@@ -227,21 +478,25 @@ const Loans = () => {
           <div className="row">
             <div className="input-group">
               <label>Type</label>
-              <select name="role" value={form.role} onChange={handleChange}>
-                <option value="lent">Lends</option>
-                <option value="borrowed">Borrowes</option>
-              </select>
+              <button
+                type="button"
+                className="loan-mode-pills"
+                onClick={() => setShowRoleOverlay(true)}
+              >
+                {toTitleCase(form.role)}
+              </button>
             </div>
             <div className="input-group">
               <label>Interest Type</label>
-              <select
-                name="interestType"
-                value={form.interestType}
-                onChange={handleChange}
+              <button
+                type="button"
+                className="loan-mode-pills"
+                onClick={() => setShowInterestTypeOverlay(true)}
               >
-                <option value="simple">Simple</option>
-                <option value="monthly">Compound</option>
-              </select>
+                {form.interestType === "monthly"
+                  ? "Compound"
+                  : toTitleCase(form.interestType)}
+              </button>
             </div>
           </div>
 
@@ -339,6 +594,157 @@ const Loans = () => {
           </motion.button>
         </form>
       </div>
+      {showPaymentOverlay && (
+        <div
+          className="loan-overlay"
+          onClick={() => {
+            setShowPaymentOverlay(false);
+            setPaymentSearch("");
+          }}
+        >
+          <div className="loan-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="loan-modal-head">
+              <h3>Select Payment Mode</h3>
+              <button
+                type="button"
+                className="loan-close"
+                onClick={() => {
+                  setShowPaymentOverlay(false);
+                  setPaymentSearch("");
+                }}
+              >
+                <i className="bi bi-x-lg"></i>
+              </button>
+            </div>
+            <input
+              type="text"
+              placeholder="Search (or) Add payment mode..."
+              value={paymentSearch}
+              onChange={(e) => setPaymentSearch(e.target.value)}
+              className="loan-search"
+            />
+            <div className="loan-list">
+              {filteredPayments.length ? (
+                filteredPayments.map((item) => {
+                  const normalizedItem = canonicalPaymentMode(item);
+                  return (
+                    <div className="loan-item-row" key={normalizedItem}>
+                      <button
+                        type="button"
+                        className={`loan-item ${
+                          canonicalPaymentMode(paymentMethod) === normalizedItem
+                            ? "active"
+                            : ""
+                        }`}
+                        onClick={() => handlePaymentSelect(normalizedItem)}
+                      >
+                        {toTitleCase(item)}
+                      </button>
+                      {customPaymentSet.has(normalizedItem) && (
+                        <button
+                          type="button"
+                          className="loan-item-remove"
+                          aria-label={`Delete ${item}`}
+                          title={`Delete ${item}`}
+                          onClick={() => handleRemovePayment(normalizedItem)}
+                        >
+                          <i className="bi bi-x-lg"></i>
+                        </button>
+                      )}
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="loan-empty">
+                  No payment modes found you can "add(+)"
+                </p>
+              )}
+              {canAddPayment && (
+                <button
+                  type="button"
+                  className="loan-item add-new"
+                  onClick={handleAddPayment}
+                  title={`Add ${normalizedPaymentSearch} to Payment Modes`}
+                >
+                  + "{normalizedPaymentSearch}"
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      {showRoleOverlay && (
+        <div
+          className="loan-overlay"
+          onClick={() => {
+            setShowRoleOverlay(false);
+          }}
+        >
+          <div className="loan-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="loan-modal-head">
+              <h3>Select Loan Type</h3>
+              <button
+                type="button"
+                className="loan-close"
+                onClick={() => setShowRoleOverlay(false)}
+              >
+                <i className="bi bi-x-lg"></i>
+              </button>
+            </div>
+            <div className="loan-list">
+              {ROLE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`loan-item ${
+                    normalizeValue(form.role) === option.value ? "active" : ""
+                  }`}
+                  onClick={() => handleRoleSelect(option.value)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+      {showInterestTypeOverlay && (
+        <div
+          className="loan-overlay"
+          onClick={() => {
+            setShowInterestTypeOverlay(false);
+          }}
+        >
+          <div className="loan-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="loan-modal-head">
+              <h3>Select Interest Type</h3>
+              <button
+                type="button"
+                className="loan-close"
+                onClick={() => setShowInterestTypeOverlay(false)}
+              >
+                <i className="bi bi-x-lg"></i>
+              </button>
+            </div>
+            <div className="loan-list">
+              {INTEREST_TYPE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={`loan-item ${
+                    normalizeValue(form.interestType) === option.value
+                      ? "active"
+                      : ""
+                  }`}
+                  onClick={() => handleInterestTypeSelect(option.value)}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 };

@@ -2,12 +2,36 @@ import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { getLoans, settleLoan, deleteLoan } from "../api/loan.api";
+import {
+  addCustomPaymentMode,
+  deleteCustomPaymentMode,
+  getUserPreferences,
+} from "../api/transaction.api";
 import { useAlert } from "../components/Alert/AlertContext";
 import { useCurrency } from "../context/CurrencyContext";
 
 import "./Notifications.css";
 
 const ITEMS_PER_PAGE = 5;
+const DEFAULT_PAYMENT_MODES = ["cash", "upi"];
+const PAYMENT_CUSTOM_KEY = "payment_custom_v1";
+const normalizeValue = (value = "") =>
+  String(value)
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+const canonicalPaymentMode = (value = "") => {
+  const normalized = normalizeValue(value);
+  if (normalized === "online" || normalized === "upi") return "upi";
+  return normalized;
+};
+const toTitleCase = (value = "") =>
+  String(value)
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\b\w/g, (m) => m.toUpperCase());
 
 const Notifications = () => {
   const navigate = useNavigate();
@@ -15,7 +39,11 @@ const Notifications = () => {
   const { showAlert } = useAlert();
   const { symbol, convert } = useCurrency();
   const [page, setPage] = useState(1);
-  const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [paymentMethod, setPaymentMethod] = useState("");
+  const [showPaymentOverlay, setShowPaymentOverlay] = useState(false);
+  const [paymentSearch, setPaymentSearch] = useState("");
+  const [customPaymentModes, setCustomPaymentModes] = useState([]);
+  const [pendingConfirm, setPendingConfirm] = useState(false);
 
   const [loans, setLoans] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,6 +56,38 @@ const Notifications = () => {
     location.state?.activeTab || "lent"
   );
   const [paymentType, setPaymentType] = useState("full");
+  const paymentOptions = useMemo(
+    () =>
+      Array.from(
+        new Set([
+          ...DEFAULT_PAYMENT_MODES,
+          canonicalPaymentMode(paymentMethod),
+          ...(customPaymentModes || []).map((item) =>
+            canonicalPaymentMode(item),
+          ),
+        ]),
+      ).filter(Boolean),
+    [customPaymentModes, paymentMethod]
+  );
+  const normalizedPaymentSearch = canonicalPaymentMode(paymentSearch);
+  const filteredPayments = useMemo(() => {
+    if (!normalizedPaymentSearch) return paymentOptions;
+    return paymentOptions.filter((item) =>
+      canonicalPaymentMode(item).includes(normalizedPaymentSearch)
+    );
+  }, [paymentOptions, normalizedPaymentSearch]);
+  const canAddPayment =
+    normalizedPaymentSearch.length > 0 &&
+    !paymentOptions.some(
+      (item) => canonicalPaymentMode(item) === normalizedPaymentSearch
+    );
+  const customPaymentSet = useMemo(
+    () =>
+      new Set(
+        (customPaymentModes || []).map((item) => canonicalPaymentMode(item))
+      ),
+    [customPaymentModes]
+  );
 
   useEffect(() => {
     const handler = setTimeout(() => setDebouncedSearch(searchTerm), 500);
@@ -36,6 +96,42 @@ const Notifications = () => {
 
   useEffect(() => {
     fetchLoans();
+  }, []);
+
+  useEffect(() => {
+    const loadLocal = () => {
+      try {
+        const savedPayments = JSON.parse(
+          localStorage.getItem(PAYMENT_CUSTOM_KEY) || "[]",
+        );
+        setCustomPaymentModes(
+          Array.isArray(savedPayments)
+            ? savedPayments
+                .map((item) => canonicalPaymentMode(item))
+                .filter(Boolean)
+            : [],
+        );
+      } catch {
+        setCustomPaymentModes([]);
+      }
+    };
+
+    const loadRemote = async () => {
+      try {
+        const prefs = await getUserPreferences();
+        const paymentModes = Array.isArray(prefs?.paymentModes)
+          ? prefs.paymentModes
+              .map((item) => canonicalPaymentMode(item))
+              .filter(Boolean)
+          : [];
+        setCustomPaymentModes(paymentModes);
+        localStorage.setItem(PAYMENT_CUSTOM_KEY, JSON.stringify(paymentModes));
+      } catch {
+        loadLocal();
+      }
+    };
+
+    loadRemote();
   }, []);
 
   const fetchLoans = async () => {
@@ -104,6 +200,7 @@ const Notifications = () => {
   /* ---------- ACTIONS ---------- */
   useEffect(() => {
     if (!selectedLoan) return;
+    setPaymentMethod(canonicalPaymentMode(selectedLoan.paymentMethod || "cash"));
     if (paymentType === "interest")
       setPaidAmount(getMonthlyInterest(selectedLoan));
     else if (paymentType === "principal")
@@ -114,6 +211,61 @@ const Notifications = () => {
   useEffect(() => {
     setPage(1);
   }, [activeTab, debouncedSearch]);
+
+  const handlePaymentSelect = (mode) => {
+    const nextMode = canonicalPaymentMode(mode);
+    setPaymentMethod(nextMode);
+    setShowPaymentOverlay(false);
+    setPaymentSearch("");
+    if (pendingConfirm) {
+      setPendingConfirm(false);
+      confirmSettle(nextMode);
+    }
+  };
+
+  const handleAddPayment = async () => {
+    if (!canAddPayment) return;
+    const name = canonicalPaymentMode(normalizedPaymentSearch);
+    try {
+      const res = await addCustomPaymentMode({ name });
+      const next = Array.isArray(res?.paymentModes)
+        ? res.paymentModes
+            .map((item) => canonicalPaymentMode(item))
+            .filter(Boolean)
+        : Array.from(new Set([...(customPaymentModes || []), name]));
+      setCustomPaymentModes(next);
+      localStorage.setItem(PAYMENT_CUSTOM_KEY, JSON.stringify(next));
+    } catch {
+      const next = Array.from(new Set([...(customPaymentModes || []), name]));
+      setCustomPaymentModes(next);
+      localStorage.setItem(PAYMENT_CUSTOM_KEY, JSON.stringify(next));
+    }
+    handlePaymentSelect(name);
+  };
+
+  const handleRemovePayment = async (mode) => {
+    const key = canonicalPaymentMode(mode);
+    if (!customPaymentSet.has(key)) return;
+    try {
+      const res = await deleteCustomPaymentMode({ name: key });
+      const next = Array.isArray(res?.paymentModes)
+        ? res.paymentModes
+            .map((item) => canonicalPaymentMode(item))
+            .filter(Boolean)
+        : (customPaymentModes || []).filter(
+            (item) => canonicalPaymentMode(item) !== key,
+          );
+      setCustomPaymentModes(next);
+      localStorage.setItem(PAYMENT_CUSTOM_KEY, JSON.stringify(next));
+    } catch {
+      const next = (customPaymentModes || []).filter(
+        (item) => canonicalPaymentMode(item) !== key,
+      );
+      setCustomPaymentModes(next);
+      localStorage.setItem(PAYMENT_CUSTOM_KEY, JSON.stringify(next));
+    }
+    if (canonicalPaymentMode(paymentMethod) === key) setPaymentMethod("");
+  };
 
   const handleInterestChange = (e) => {
     const valString = e.target.value;
@@ -327,9 +479,16 @@ Thank you.`;
     window.open(`https://wa.me/91${loan.contact}?text=${encoded}`, "_blank");
   };
 
-  const confirmSettle = async () => {
+  const confirmSettle = async (methodOverride) => {
     if (!paidAmount || Number(paidAmount) <= 0) {
       showAlert("Enter a valid amount", "warning");
+      return;
+    }
+    const method = canonicalPaymentMode(methodOverride || paymentMethod);
+    if (!method) {
+      setPendingConfirm(true);
+      setShowPaymentOverlay(true);
+      showAlert("Select payment mode", "warning");
       return;
     }
 
@@ -337,7 +496,7 @@ Thank you.`;
       await settleLoan(selectedLoan._id, {
         paidAmount: Number(paidAmount),
         paymentType,
-        paymentMethod,
+        paymentMethod: method,
       });
 
       sendWhatsAppMessage(selectedLoan, paidAmount, paymentType);
@@ -437,6 +596,9 @@ Thank you.`;
                   className="manage-btn"
                   onClick={() => {
                     setSelectedLoan(loan);
+                    setPaymentSearch("");
+                    setPendingConfirm(false);
+                    setShowPaymentOverlay(false);
                     setShowSettleModal(true);
                   }}
                 >
@@ -507,6 +669,8 @@ Thank you.`;
                           fetchLoans();
                           window.dispatchEvent(new Event("loans:changed"));
                           setShowSettleModal(false);
+                          setShowPaymentOverlay(false);
+                          setPendingConfirm(false);
                           showAlert("Loan deleted", "success");
                         }
                       );
@@ -516,39 +680,11 @@ Thank you.`;
                   </button>
                 </div>
               </div>
-              {/* In Notifications.jsx, find the payment-toggle div inside the AnimatePresence modal */}
-
-              <div className="date-header">
-                <label
-                  style={{
-                    fontSize: "10px",
-                    fontWeight: "800",
-                    color: "var(--text-muted)",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  Payment Method
-                </label>
-                <div className="duration-toggle">
-                  <div
-                    className={`toggle-slider ${paymentMethod === "bank" ? "slide-right" : "slide-left"}`}
-                  />
-                  <button
-                    type="button"
-                    className={`toggle-btn ${paymentMethod === "cash" ? "active" : ""}`}
-                    onClick={() => setPaymentMethod("cash")}
-                  >
-                    CASH
-                  </button>
-                  <button
-                    type="button"
-                    className={`toggle-btn ${paymentMethod === "bank" ? "active" : ""}`}
-                    onClick={() => setPaymentMethod("bank")}
-                  >
-                    BANK
-                  </button>
-                </div>
-              </div>
+              {paymentMethod ? (
+                <p className="notify-payment-pill">
+                  Payment mode: <strong>{toTitleCase(paymentMethod)}</strong>
+                </p>
+              ) : null}
               <div className="payment-options">
                 <label
                   className={`option-card ${paymentType === "interest" ? "active" : ""} ${getRemainingInterest(selectedLoan) <= 0 ? "disabled" : ""}`}
@@ -651,14 +787,114 @@ Thank you.`;
               <div className="modal-footer">
                 <button
                   className="btn-secondary"
-                  onClick={() => setShowSettleModal(false)}
+                  onClick={() => {
+                    setShowSettleModal(false);
+                    setShowPaymentOverlay(false);
+                    setPendingConfirm(false);
+                  }}
                 >
                   Back
                 </button>
-                <button className="btn-primary" onClick={confirmSettle}>
+                <button
+                  className="btn-primary"
+                  onClick={() => {
+                    setPendingConfirm(true);
+                    setShowPaymentOverlay(true);
+                  }}
+                >
                   Confirm Paid
                 </button>
               </div>
+              <AnimatePresence>
+                {showPaymentOverlay && (
+                  <motion.div
+                    className="notify-payment-overlay"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <motion.div
+                      className="notify-payment-modal"
+                      initial={{ scale: 0.95, y: 12 }}
+                      animate={{ scale: 1, y: 0 }}
+                    >
+                      <div className="notify-payment-head">
+                        <h4>Select Payment Mode</h4>
+                        <button
+                          type="button"
+                          className="notify-payment-close"
+                          onClick={() => {
+                            setShowPaymentOverlay(false);
+                            setPendingConfirm(false);
+                            setPaymentSearch("");
+                          }}
+                        >
+                          <i className="bi bi-x-lg"></i>
+                        </button>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Search payment mode..."
+                        value={paymentSearch}
+                        onChange={(e) => setPaymentSearch(e.target.value)}
+                        className="notify-payment-search"
+                      />
+                      <div className="notify-payment-list">
+                        {filteredPayments.length ? (
+                          filteredPayments.map((item) => {
+                            const normalizedItem = canonicalPaymentMode(item);
+                            return (
+                              <div
+                                className="notify-payment-row"
+                                key={normalizedItem}
+                              >
+                                <button
+                                  type="button"
+                                  className={`notify-payment-item ${
+                                    canonicalPaymentMode(paymentMethod) ===
+                                    normalizedItem
+                                      ? "active"
+                                      : ""
+                                  }`}
+                                  onClick={() =>
+                                    handlePaymentSelect(normalizedItem)
+                                  }
+                                >
+                                  {toTitleCase(item)}
+                                </button>
+                                {customPaymentSet.has(normalizedItem) && (
+                                  <button
+                                    type="button"
+                                    className="notify-payment-remove"
+                                    onClick={() =>
+                                      handleRemovePayment(normalizedItem)
+                                    }
+                                  >
+                                    <i className="bi bi-x-lg"></i>
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <p className="notify-payment-empty">
+                            No payment modes found you can "add(+)"
+                          </p>
+                        )}
+                        {canAddPayment && (
+                          <button
+                            type="button"
+                            className="notify-payment-item add-new"
+                            onClick={handleAddPayment}
+                          >
+                            + "{normalizedPaymentSearch}"
+                          </button>
+                        )}
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           </motion.div>
         )}

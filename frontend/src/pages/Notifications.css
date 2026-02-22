@@ -306,6 +306,116 @@
   cursor: pointer;
 }
 
+.notify-payment-pill {
+  margin: 4px 0 14px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.notify-payment-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(16, 35, 42, 0.35);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 10px;
+}
+
+.notify-payment-modal {
+  width: 100%;
+  background: var(--card-bg);
+  border-radius: 16px;
+  border: 1px solid rgba(16, 35, 42, 0.08);
+  padding: 12px;
+  box-shadow: 0 10px 24px rgba(16, 35, 42, 0.12);
+}
+
+.notify-payment-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.notify-payment-head h4 {
+  margin: 0;
+  font-size: 14px;
+  color: var(--primary);
+}
+
+.notify-payment-close {
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.notify-payment-search {
+  width: 100%;
+  border: 1px solid var(--text-muted);
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 13px;
+  background: var(--card-bg);
+}
+
+.notify-payment-list {
+  margin-top: 10px;
+  max-height: 220px;
+  overflow: auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.notify-payment-row {
+  position: relative;
+}
+
+.notify-payment-item {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--text-muted);
+  border-radius: 10px;
+  background: var(--card-bg);
+  color: var(--text-main);
+  padding: 9px 10px;
+  font-weight: 600;
+}
+
+.notify-payment-item.active {
+  border-color: var(--accent);
+  background: rgba(181, 136, 99, 0.12);
+}
+
+.notify-payment-item.add-new {
+  border-color: var(--primary);
+  background: rgba(16, 35, 42, 0.06);
+}
+
+.notify-payment-row .notify-payment-item {
+  padding-right: 32px;
+}
+
+.notify-payment-remove {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.notify-payment-empty {
+  grid-column: span 2;
+  margin: 6px 2px;
+  color: var(--text-muted);
+}
+
 /* 9. ANIMATIONS */
 .option-card.active .inline-edit {
   animation: edit-pulse 2s infinite;

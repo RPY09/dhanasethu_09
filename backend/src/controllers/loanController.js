@@ -1,5 +1,11 @@
 const Loan = require("../models/LoanModel");
 const Transaction = require("../models/TransactionModel");
+const normalizePaymentMethod = (value) =>
+  String(value || "")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
 
 // Helper: try to close loan when fully repaid
 const checkAndCloseLoan = async (loan) => {
@@ -20,9 +26,9 @@ const checkAndCloseLoan = async (loan) => {
 exports.addLoan = async (req, res) => {
   try {
     const amount = Number(req.body.amount);
-    const paymentMethod = req.body.paymentMethod;
+    const paymentMethod = normalizePaymentMethod(req.body.paymentMethod);
 
-    if (!["cash", "bank"].includes(paymentMethod)) {
+    if (!paymentMethod) {
       return res.status(400).json({ message: "Invalid payment method" });
     }
 
@@ -87,8 +93,10 @@ exports.settleLoan = async (req, res) => {
     }
 
     // determine paymentMethod: prefer client-provided, otherwise fallback to loan.paymentMethod
-    const paymentMethod = req.body.paymentMethod || loan.paymentMethod;
-    if (!["cash", "bank"].includes(paymentMethod)) {
+    const paymentMethod = normalizePaymentMethod(
+      req.body.paymentMethod || loan.paymentMethod
+    );
+    if (!paymentMethod) {
       return res.status(400).json({ message: "Invalid payment method" });
     }
 
